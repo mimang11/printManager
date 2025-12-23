@@ -284,11 +284,7 @@ function Dashboard() {
     loadMonthlyDetail();
   };
 
-  if (loading) {
-    return <div className="loading">加载中...</div>;
-  }
-
-  // 使用 useMemo 缓存计算结果，避免重复渲染
+  // 使用 useMemo 缓存计算结果，避免重复渲染（必须在条件返回之前）
   const stats = useMemo(() => calculateStats(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
   const chartData = useMemo(() => calculateChartData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
   const pieData = useMemo(() => calculatePieData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
@@ -312,6 +308,10 @@ function Dashboard() {
     (acc, d) => ({ count: acc.count + d.count, revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit }),
     { count: 0, revenue: 0, cost: 0, profit: 0 }
   ), [monthlyDetail]);
+
+  if (loading) {
+    return <div className="loading">加载中...</div>;
+  }
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -480,11 +480,11 @@ function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
-                    data={pieData} 
+                    data={pieData as any} 
                     cx="50%" 
                     cy="50%" 
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    label={({ name, percent }: { name: string; percent?: number }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
                     outerRadius={80} 
                     dataKey="value"
                     onClick={handlePieClick}
