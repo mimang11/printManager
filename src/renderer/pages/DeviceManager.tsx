@@ -152,6 +152,12 @@ function DeviceManager() {
     }
   };
 
+  // 从URL提取IP地址
+  const extractIP = (url: string): string => {
+    const match = url.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+    return match ? match[1] : url;
+  };
+
   // 渲染状态标签
   const renderStatus = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -219,8 +225,21 @@ function DeviceManager() {
               {printers.map((printer) => (
                 <tr key={printer.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedPrinter(printer)}>
                   <td style={{ color: '#3b82f6', fontWeight: 500 }}>{printer.alias}</td>
-                  <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {printer.target_url}
+                  <td>
+                    <a 
+                      href={printer.target_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ 
+                        color: '#3b82f6', textDecoration: 'none', 
+                        display: 'inline-flex', alignItems: 'center', gap: '4px'
+                      }}
+                      title={printer.target_url}
+                    >
+                      {extractIP(printer.target_url)}
+                      <span style={{ fontSize: '12px' }}>↗</span>
+                    </a>
                   </td>
                   <td>{renderStatus(printer.status)}</td>
                   {showCost && <td>¥{printer.financials.cost_per_page} / ¥{printer.financials.price_per_page}</td>}
