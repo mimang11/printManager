@@ -2,7 +2,7 @@
  * Dashboard 页面 - BI 数据看板
  * 支持按年/月/日切换查看数据
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DashboardStats, ChartDataPoint, PieChartData, DailyRevenueDetail, PrinterConfig, DailyRecord } from '../../shared/types';
 
@@ -288,14 +288,30 @@ function Dashboard() {
     return <div className="loading">加载中...</div>;
   }
 
-  const stats = calculateStats();
-  const chartData = calculateChartData();
-  const pieData = calculatePieData();
+  // 使用 useMemo 缓存计算结果，避免重复渲染
+  const stats = useMemo(() => calculateStats(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
+  const chartData = useMemo(() => calculateChartData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
+  const pieData = useMemo(() => calculatePieData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
   
-  const detailTotals = monthlyDetail.reduce(
+  // 缓存饼图 Cell 数据
+  const pieCellData = useMemo(() => {
+    return pieData.map((entry, index) => {
+      const printer = printers.find(p => p.alias === entry.name);
+      const isSelected = selectedPrinter && printer?.id === selectedPrinter;
+      return {
+        key: `cell-${index}`,
+        fill: COLORS[index % COLORS.length],
+        stroke: isSelected ? '#1f2937' : 'none',
+        strokeWidth: isSelected ? 3 : 0,
+        opacity: selectedPrinter && !isSelected ? 0.4 : 1,
+      };
+    });
+  }, [pieData, printers, selectedPrinter]);
+  
+  const detailTotals = useMemo(() => monthlyDetail.reduce(
     (acc, d) => ({ count: acc.count + d.count, revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit }),
     { count: 0, revenue: 0, cost: 0, profit: 0 }
-  );
+  ), [monthlyDetail]);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
