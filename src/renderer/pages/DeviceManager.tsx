@@ -224,7 +224,12 @@ function DeviceManager() {
             <tbody>
               {printers.map((printer) => (
                 <tr key={printer.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedPrinter(printer)}>
-                  <td style={{ color: '#3b82f6', fontWeight: 500 }}>{printer.alias}</td>
+                  <td style={{ color: '#3b82f6', fontWeight: 500 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '18px' }}>🖨️</span>
+                      {printer.alias}
+                    </span>
+                  </td>
                   <td>
                     <a 
                       href={printer.target_url}
