@@ -29,6 +29,7 @@ function Dashboard() {
   const [showProfitModal, setShowProfitModal] = useState(false);
   const [monthlyDetail, setMonthlyDetail] = useState<DailyRevenueDetail[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null); // 选中的设备ID
 
   // 加载基础数据
   const loadData = async () => {
@@ -308,6 +309,31 @@ function Dashboard() {
       month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
+  };
+
+  // 获取选中设备的名称
+  const selectedPrinterName = selectedPrinter 
+    ? printers.find(p => p.id === selectedPrinter)?.alias 
+    : null;
+
+  // 过滤后的打印机列表（用于柱状图）
+  const filteredPrinters = selectedPrinter 
+    ? printers.filter(p => p.id === selectedPrinter)
+    : printers;
+
+  // 饼图点击事件
+  const handlePieClick = (data: any) => {
+    if (data && data.name) {
+      const printer = printers.find(p => p.alias === data.name);
+      if (printer) {
+        setSelectedPrinter(printer.id);
+      }
+    }
+  };
+
+  // 重置选择
+  const resetSelection = () => {
+    setSelectedPrinter(null);
   };
 
   return (
