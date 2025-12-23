@@ -484,27 +484,18 @@ function Dashboard() {
                     cx="50%" 
                     cy="50%" 
                     labelLine={false}
-                    label={({ name, percentage }) => `${name}: ${percentage}%`}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
                     outerRadius={80} 
                     dataKey="value"
                     onClick={handlePieClick}
                     style={{ cursor: 'pointer' }}
+                    isAnimationActive={false}
                   >
-                    {pieData.map((entry, index) => {
-                      const printer = printers.find(p => p.alias === entry.name);
-                      const isSelected = selectedPrinter && printer?.id === selectedPrinter;
-                      return (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={COLORS[index % COLORS.length]}
-                          stroke={isSelected ? '#1f2937' : 'none'}
-                          strokeWidth={isSelected ? 3 : 0}
-                          opacity={selectedPrinter && !isSelected ? 0.4 : 1}
-                        />
-                      );
-                    })}
+                    {pieCellData.map((cellProps) => (
+                      <Cell {...cellProps} />
+                    ))}
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value} 张`, name]} />
+                  <Tooltip formatter={(value: number | undefined) => [`${value ?? 0} 张`, '']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
