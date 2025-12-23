@@ -416,6 +416,11 @@ function RevenueManager() {
                         </td>
                         <td style={{ fontSize: '13px' }}>
                           <span style={{ color: '#6b7280' }}>{p.count}张</span>
+                          {(p.wasteCount || 0) > 0 && (
+                            <span style={{ marginLeft: '4px', color: '#ef4444', fontSize: '12px' }}>
+                              (-{p.wasteCount}损耗)
+                            </span>
+                          )}
                           <span style={{ marginLeft: '8px', color: '#22c55e' }}>¥{p.revenue.toFixed(2)}</span>
                         </td>
                         <td style={{ fontSize: '13px', color: '#ef4444' }}>¥{p.cost.toFixed(2)}</td>
@@ -423,7 +428,21 @@ function RevenueManager() {
                         <td style={{ fontSize: '13px', color: p.profit >= 0 ? '#22c55e' : '#ef4444' }}>
                           ¥{p.profit.toFixed(2)}
                         </td>
-                        <td></td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {p.count > 0 && (
+                            <button 
+                              className="btn btn-sm" 
+                              style={{ 
+                                background: (p.wasteCount || 0) > 0 ? '#fef3c7' : '#f3f4f6',
+                                color: (p.wasteCount || 0) > 0 ? '#d97706' : '#6b7280',
+                                border: 'none', fontSize: '12px', padding: '4px 8px'
+                              }}
+                              onClick={() => openWasteModal(day.date, p.printerId, p.printerName, p.count, p.wasteCount || 0)}
+                            >
+                              🗑️ {(p.wasteCount || 0) > 0 ? `损耗:${p.wasteCount}` : '损耗'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </React.Fragment>
