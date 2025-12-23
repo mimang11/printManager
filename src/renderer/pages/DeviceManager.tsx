@@ -101,9 +101,36 @@ function DeviceManager() {
   };
 
   // 刷新单个打印机
+  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
   const handleRefreshOne = async (id: string) => {
-    await window.electronAPI.refreshOne(id);
-    loadPrinters();
+    setRefreshingIds(prev => new Set(prev).add(id));
+    try {
+      await window.electronAPI.refreshOne(id);
+      await loadPrinters();
+    } finally {
+      setRefreshingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  // 刷新所有打印机
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  const handleRefreshAll = async () => {
+    setRefreshingAll(true);
+    // 标记所有设备为刷新中
+    setRefreshingIds(new Set(printers.map(p => p.id)));
+    try {
+      await window.electronAPI.refreshAll();
+      await loadPrinters();
+    } catch (error) {
+      console.error('刷新失败:', error);
+    } finally {
+      setRefreshingAll(false);
+      setRefreshingIds(new Set());
+    }
   };
 
   // 测试抓取
@@ -196,6 +223,13 @@ function DeviceManager() {
         <h1 className="page-title">设备管理</h1>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
+            className="btn btn-secondary"
+            onClick={handleRefreshAll}
+            disabled={refreshingAll || printers.length === 0}
+          >
+            {refreshingAll ? '⏳ 刷新中...' : '🔄 全部刷新'}
+          </button>
+          <button 
             className={`btn ${showCost ? 'btn-primary' : 'btn-secondary'}`} 
             onClick={() => setShowCost(!showCost)}
           >
@@ -255,7 +289,13 @@ function DeviceManager() {
                       <span style={{ fontSize: '12px' }}>↗</span>
                     </a>
                   </td>
-                  <td>{renderStatus(printer.status)}</td>
+                  <td>
+                    {refreshingIds.has(printer.id) ? (
+                      <span className="status-badge" style={{ background: '#fef3c7', color: '#d97706' }}>
+                        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span> 刷新中
+                      </span>
+                    ) : renderStatus(printer.status)}
+                  </td>
                   {showCost && <td>¥{printer.financials.cost_per_page} / ¥{printer.financials.price_per_page}</td>}
                   <td>{new Date(printer.last_updated).toLocaleString()}</td>
                   <td onClick={(e) => e.stopPropagation()}>
