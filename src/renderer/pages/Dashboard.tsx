@@ -366,10 +366,22 @@ function Dashboard() {
             {stats.revenueChange >= 0 ? '↑' : '↓'} {Math.abs(stats.revenueChange)}% 环比{prevLabel}
           </div>
         </div>
-        <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={handleProfitClick}>
-          <div className="kpi-label">{periodLabel}净利润 <span style={{ fontSize: '12px', color: '#3b82f6' }}>(点击明细)</span></div>
+        <div className="kpi-card" style={{ cursor: 'pointer', position: 'relative' }} onClick={handleProfitClick}>
+          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {periodLabel}毛利润
+            <span 
+              title="仅包含：营收 - 耗材成本。未包含房租等固定支出。查看净利润请前往「营收管理」页面。"
+              style={{ 
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '16px', height: '16px', borderRadius: '50%', 
+                background: '#e5e7eb', color: '#6b7280', fontSize: '11px', 
+                cursor: 'help', fontWeight: 600 
+              }}
+            >i</span>
+            <span style={{ fontSize: '12px', color: '#3b82f6' }}>(点击明细)</span>
+          </div>
           <div className="kpi-value">¥{stats.totalProfit.toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>成本: ¥{stats.totalCost.toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: ¥{stats.totalCost.toFixed(2)}</div>
         </div>
       </div>
 
