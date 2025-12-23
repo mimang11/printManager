@@ -303,7 +303,11 @@ function RevenueManager() {
               {filteredData.map((day) => {
                 const dayRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
                 const dayCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
-                const totalCost = dayCost + Math.abs(day.rent);
+                // 根据开关决定是否包含固定成本分摊
+                const totalCost = includeFixedCost ? dayCost + dailyRent : dayCost;
+                const dayNetProfit = includeFixedCost 
+                  ? dayRevenue + day.otherIncome - dayCost - dailyRent 
+                  : dayRevenue + day.otherIncome - dayCost;
                 const isExpanded = expandedRows.has(day.date);
                 
                 return (
@@ -317,7 +321,8 @@ function RevenueManager() {
                       <td style={{ position: 'relative' }} className="tooltip-trigger">
                         <span style={{ color: '#ef4444', cursor: 'help' }}>¥{totalCost.toFixed(2)}</span>
                         <div className="tooltip-content" style={tooltipStyle}>
-                          耗材成本: ¥{dayCost.toFixed(2)}<br/>房租: ¥{Math.abs(day.rent).toFixed(0)}
+                          耗材成本: ¥{dayCost.toFixed(2)}
+                          {includeFixedCost && <><br/>房租分摊: ¥{dailyRent.toFixed(2)}</>}
                         </div>
                       </td>
                       <td>
@@ -328,14 +333,14 @@ function RevenueManager() {
                         ) : '-'}
                       </td>
                       <td style={{ position: 'relative' }} className="tooltip-trigger">
-                        <span style={{ color: day.netProfit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600, cursor: 'help' }}>
-                          ¥{day.netProfit.toFixed(2)}
+                        <span style={{ color: dayNetProfit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600, cursor: 'help' }}>
+                          ¥{dayNetProfit.toFixed(2)}
                         </span>
                         <div className="tooltip-content" style={tooltipStyle}>
                           营业额: ¥{(dayRevenue + day.otherIncome).toFixed(2)}<br/>
                           - 耗材: ¥{dayCost.toFixed(2)}<br/>
-                          - 房租: ¥{Math.abs(day.rent).toFixed(0)}<br/>
-                          = 纯利润: ¥{day.netProfit.toFixed(2)}
+                          {includeFixedCost && <>- 房租分摊: ¥{dailyRent.toFixed(2)}<br/></>}
+                          = 纯利润: ¥{dayNetProfit.toFixed(2)}
                         </div>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
