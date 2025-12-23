@@ -22,6 +22,7 @@ const emptyForm = {
   alias: '',
   target_url: '',
   dom_selector: DEFAULT_SELECTOR,
+  printer_type: 'mono' as 'mono' | 'color',
   cost_per_page: 0.05,
   price_per_page: 0.5,
   revenue_formula: '',
@@ -82,6 +83,7 @@ function DeviceManager() {
       alias: printer.alias,
       target_url: printer.target_url,
       dom_selector: printer.dom_selector,
+      printer_type: printer.printer_type || 'mono',
       cost_per_page: printer.financials.cost_per_page,
       price_per_page: printer.financials.price_per_page,
       revenue_formula: printer.financials.revenue_formula || '',
@@ -126,6 +128,7 @@ function DeviceManager() {
         alias: formData.alias,
         target_url: formData.target_url,
         dom_selector: formData.dom_selector,
+        printer_type: formData.printer_type,
         financials: {
           cost_per_page: formData.cost_per_page,
           price_per_page: formData.price_per_page,
@@ -226,7 +229,13 @@ function DeviceManager() {
                 <tr key={printer.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedPrinter(printer)}>
                   <td style={{ color: '#3b82f6', fontWeight: 500 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '18px' }}>🖨️</span>
+                      {printer.printer_type === 'color' ? (
+                        <span style={{ fontSize: '18px', position: 'relative' }}>
+                          🖨️<span style={{ position: 'absolute', bottom: '-2px', right: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #f59e0b, #22c55e, #3b82f6)', border: '1px solid white' }}></span>
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '18px', filter: 'grayscale(100%)' }}>🖨️</span>
+                      )}
                       {printer.alias}
                     </span>
                   </td>
@@ -285,6 +294,31 @@ function DeviceManager() {
                   value={formData.alias}
                   onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label">打印机类型</label>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="printer_type" 
+                      checked={formData.printer_type === 'mono'}
+                      onChange={() => setFormData({ ...formData, printer_type: 'mono' })}
+                    />
+                    <span style={{ filter: 'grayscale(100%)' }}>🖨️</span> 黑白机
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="printer_type" 
+                      checked={formData.printer_type === 'color'}
+                      onChange={() => setFormData({ ...formData, printer_type: 'color' })}
+                    />
+                    <span style={{ position: 'relative' }}>
+                      🖨️<span style={{ position: 'absolute', bottom: '-2px', right: '-4px', width: '8px', height: '8px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #f59e0b, #22c55e, #3b82f6)' }}></span>
+                    </span> 彩色机
+                  </label>
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">抓取地址 *</label>
