@@ -158,16 +158,45 @@ function Dashboard() {
     const printerMap = new Map<string, PrinterConfig>();
     printers.forEach(p => printerMap.set(p.id, p));
     
-    if (viewMode === 'day' || viewMode === 'month') {
-      // 显示最近7天或本月每天
-      const days = viewMode === 'day' ? 7 : new Date(selectedYear, selectedMonth, 0).getDate();
-      const baseDate = viewMode === 'day' 
-        ? new Date(selectedYear, selectedMonth - 1, selectedDay)
+    if (viewMode === 'day') {
+      // 按日视图：显示最近7天
+      const baseDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(baseDate);
+        date.setDate(date.getDate() - (6 - i));
+        const dateStr = date.toISOString().split('T')[0];
+        const dayRecords = records.filter(r => r.date === dateStr);
+        
+        const dataPoint: ChartDataPoint = {
+          date: dateStr.slice(5),
+          count: dayRecords.reduce((sum, r) => sum + r.daily_increment, 0),
+        };
+        printers.forEach(printer => {
+          const printerRecords = dayRecords.filter(r => r.printer_id === printer.id);
+          dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
+        });
+        result.push(dataPoint);
+      }
+    } else if (viewMode === 'month') {
+      // 按月视图：检测数据密度
+      const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+      const monthStart = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+      const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+      const monthRecords = records.filter(r => r.date >= monthStart && r.date <= monthEnd);
+      
+      // 统计有数据的天数
+      const daysWithData = new Set(monthRecords.filter(r => r.daily_increment > 0).map(r => r.date)).size;
+      
+      // 如果有数据的天数少于7天，显示最近7天
+      const showRecentDays = daysWithData < 7;
+      const days = showRecentDays ? 7 : daysInMonth;
+      const baseDate = showRecentDays 
+        ? new Date() // 从今天往前推7天
         : new Date(selectedYear, selectedMonth - 1, 1);
       
       for (let i = 0; i < days; i++) {
         const date = new Date(baseDate);
-        if (viewMode === 'day') {
+        if (showRecentDays) {
           date.setDate(date.getDate() - (days - 1 - i));
         } else {
           date.setDate(i + 1);
@@ -179,12 +208,10 @@ function Dashboard() {
           date: dateStr.slice(5),
           count: dayRecords.reduce((sum, r) => sum + r.daily_increment, 0),
         };
-        
         printers.forEach(printer => {
           const printerRecords = dayRecords.filter(r => r.printer_id === printer.id);
           dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
         });
-        
         result.push(dataPoint);
       }
     } else {
@@ -199,12 +226,10 @@ function Dashboard() {
           date: `${month}月`,
           count: monthRecords.reduce((sum, r) => sum + r.daily_increment, 0),
         };
-        
         printers.forEach(printer => {
           const printerRecords = monthRecords.filter(r => r.printer_id === printer.id);
           dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
         });
-        
         result.push(dataPoint);
       }
     }
@@ -356,14 +381,24 @@ function Dashboard() {
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
+              <BarChart data={chartData} barCategoryGap="20%" barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  formatter={(value: number) => [`${value} 张`, '']}
+                />
                 <Legend />
                 {printers.map((printer, index) => (
-                  <Bar key={printer.id} dataKey={printer.alias} fill={COLORS[index % COLORS.length]} />
+                  <Bar 
+                    key={printer.id} 
+                    dataKey={printer.alias} 
+                    fill={COLORS[index % COLORS.length]}
+                    radius={[4, 4, 0, 0]}
+                    minPointSize={3}
+                    maxBarSize={50}
+                  />
                 ))}
               </BarChart>
             </ResponsiveContainer>
