@@ -208,6 +208,8 @@ export interface ElectronAPI {
   getOtherRevenues: (year?: number, month?: number) => Promise<OtherRevenue[]>;
   addOtherRevenue: (revenue: Omit<OtherRevenue, 'id' | 'timestamp'>) => Promise<OtherRevenue>;
   deleteOtherRevenue: (id: string) => Promise<boolean>;
+  // 导入历史数据
+  importHistoryData: () => Promise<{ success: boolean; message: string; matchedPrinters?: string[] }>;
 }
 
 // 扩展 Window 接口，添加 electronAPI

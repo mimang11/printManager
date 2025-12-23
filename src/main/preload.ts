@@ -78,6 +78,11 @@ const electronAPI: ElectronAPI = {
   
   // 删除其他营收
   deleteOtherRevenue: (id) => ipcRenderer.invoke('delete-other-revenue', id),
+
+  // ========== 导入历史数据 ==========
+  
+  // 导入历史数据
+  importHistoryData: () => ipcRenderer.invoke('import-history-data'),
 };
 
 // 使用 contextBridge 安全地暴露 API

@@ -8,13 +8,14 @@
  * 3. 管理文件系统操作
  */
 
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { initDataDirectory, loadConfig, saveConfig, loadRecords, saveRecords, loadOtherRevenues, saveOtherRevenues } from './fileManager';
 import { scrapeCounter, testScrapeUrl, fetchPrinterDetail } from './scraper';
 import { calculateDashboardStats, calculateChartData, calculatePieChartData, calculateComparisonData, calculateMonthlyRevenueDetail, calculateMonthlyRevenueData } from './analytics';
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -366,6 +367,119 @@ ipcMain.handle('delete-other-revenue', async (_, id: string) => {
   revenues.splice(index, 1);
   await saveOtherRevenues(revenues);
   return true;
+});
+
+// ============================================
+// IPC 处理器 - 导入历史数据
+// ============================================
+
+ipcMain.handle('import-history-data', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: '选择历史数据文件',
+    filters: [
+      { name: 'Excel/CSV', extensions: ['xlsx', 'xls', 'csv'] }
+    ],
+    properties: ['openFile']
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { success: false, message: '已取消' };
+  }
+
+  try {
+    const filePath = result.filePaths[0];
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
+
+    if (data.length === 0) {
+      return { success: false, message: '文件为空' };
+    }
+
+    const config = await loadConfig();
+    const records = await loadRecords();
+    const printers = config.printers;
+
+    // 获取表头（除了日期列）
+    const headers = Object.keys(data[0]).filter(h => h !== '日期');
+    
+    // 匹配打印机别名
+    const printerMap = new Map<string, PrinterConfig>();
+    headers.forEach(header => {
+      const printer = printers.find(p => p.alias === header);
+      if (printer) {
+        printerMap.set(header, printer);
+      }
+    });
+
+    if (printerMap.size === 0) {
+      return { success: false, message: '未找到匹配的打印机别名，请检查表头' };
+    }
+
+    let importedCount = 0;
+    let skippedCount = 0;
+
+    for (const row of data) {
+      let dateStr = row['日期'];
+      if (!dateStr) continue;
+
+      // 处理日期格式
+      if (typeof dateStr === 'number') {
+        // Excel 日期序列号
+        const date = XLSX.SSF.parse_date_code(dateStr);
+        dateStr = `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+      } else if (typeof dateStr === 'string') {
+        // 尝试解析各种日期格式
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          dateStr = parsed.toISOString().split('T')[0];
+        }
+      }
+
+      // 验证日期格式
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        skippedCount++;
+        continue;
+      }
+
+      for (const [header, printer] of printerMap) {
+        const count = parseInt(row[header]) || 0;
+        if (count <= 0) continue;
+
+        // 检查是否已存在该日期该打印机的记录
+        const existingIndex = records.findIndex(
+          r => r.date === dateStr && r.printer_id === printer.id
+        );
+
+        const record: DailyRecord = {
+          record_id: existingIndex >= 0 ? records[existingIndex].record_id : uuidv4(),
+          printer_id: printer.id,
+          date: dateStr,
+          total_counter: count,
+          daily_increment: count,
+          timestamp: Date.now(),
+        };
+
+        if (existingIndex >= 0) {
+          records[existingIndex] = record;
+        } else {
+          records.push(record);
+        }
+        importedCount++;
+      }
+    }
+
+    await saveRecords(records);
+
+    return {
+      success: true,
+      message: `导入成功！共导入 ${importedCount} 条记录${skippedCount > 0 ? `，跳过 ${skippedCount} 行无效数据` : ''}`,
+      matchedPrinters: Array.from(printerMap.keys()),
+    };
+  } catch (error: any) {
+    return { success: false, message: `导入失败: ${error.message}` };
+  }
 });
 
 /**

@@ -20,6 +20,7 @@ function RevenueManager() {
   const [selectedDate, setSelectedDate] = useState('');
   const [otherAmount, setOtherAmount] = useState(0);
   const [otherNote, setOtherNote] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -49,6 +50,25 @@ function RevenueManager() {
       loadData();
     } catch (error) {
       alert('添加失败: ' + error);
+    }
+  };
+
+  const handleImportHistory = async () => {
+    setImporting(true);
+    try {
+      const result = await window.electronAPI.importHistoryData();
+      if (result.success) {
+        alert(result.message + (result.matchedPrinters ? `\n匹配的打印机: ${result.matchedPrinters.join(', ')}` : ''));
+        loadData();
+      } else {
+        if (result.message !== '已取消') {
+          alert(result.message);
+        }
+      }
+    } catch (error) {
+      alert('导入失败: ' + error);
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -147,6 +167,9 @@ function RevenueManager() {
           <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {months.map(m => <option key={m} value={m}>{m}月</option>)}
           </select>
+          <button className="btn btn-secondary" onClick={handleImportHistory} disabled={importing}>
+            {importing ? '导入中...' : '📥 导入历史数据'}
+          </button>
           <button className="btn btn-primary" onClick={loadData} disabled={loading}>
             {loading ? '加载中...' : '刷新'}
           </button>
