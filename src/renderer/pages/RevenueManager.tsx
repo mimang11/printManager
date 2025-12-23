@@ -1,9 +1,9 @@
 /**
  * RevenueManager 页面 - 营收管理
- * 显示每台机器明细、其他收入、房租、纯利润
+ * 优化版：可折叠机器明细、悬浮提示
  */
 import React, { useState, useEffect } from 'react';
-import { MonthlyRevenueData, OtherRevenue } from '../../shared/types';
+import { MonthlyRevenueData } from '../../shared/types';
 
 function RevenueManager() {
   const now = new Date();
@@ -12,6 +12,7 @@ function RevenueManager() {
   const [revenueData, setRevenueData] = useState<MonthlyRevenueData[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   
   // 其他收入弹窗
   const [showAddModal, setShowAddModal] = useState(false);
@@ -19,7 +20,6 @@ function RevenueManager() {
   const [otherAmount, setOtherAmount] = useState(0);
   const [otherNote, setOtherNote] = useState('');
 
-  // 加载数据
   const loadData = async () => {
     setLoading(true);
     try {
@@ -33,19 +33,14 @@ function RevenueManager() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [year, month]);
+  useEffect(() => { loadData(); }, [year, month]);
 
-  // 添加其他收入
   const handleAddOther = async () => {
     if (!selectedDate) return;
     try {
       await window.electronAPI.addOtherRevenue({
-        date: selectedDate,
-        amount: otherAmount,
-        description: otherNote,
-        category: '其他',
+        date: selectedDate, amount: otherAmount,
+        description: otherNote, category: '其他',
       });
       setShowAddModal(false);
       setOtherAmount(0);
@@ -56,39 +51,56 @@ function RevenueManager() {
     }
   };
 
-  // 打开添加弹窗
-  const openAddModal = (date: string) => {
-    setSelectedDate(date);
-    setShowAddModal(true);
+  const toggleRow = (date: string) => {
+    const newSet = new Set(expandedRows);
+    if (newSet.has(date)) {
+      newSet.delete(date);
+    } else {
+      newSet.add(date);
+    }
+    setExpandedRows(newSet);
+  };
+
+  const expandAll = () => {
+    const allDates = revenueData.filter(d => d.printers.some(p => p.count > 0) || d.otherIncome !== 0).map(d => d.date);
+    setExpandedRows(new Set(allDates));
+  };
+
+  const collapseAll = () => {
+    setExpandedRows(new Set());
   };
 
   // 计算月度汇总
   const monthTotals = revenueData.reduce((acc, day) => {
     const printerRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
     const printerCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
-    const printerProfit = day.printers.reduce((sum, p) => sum + p.profit, 0);
     return {
       totalRevenue: acc.totalRevenue + printerRevenue,
       totalCost: acc.totalCost + printerCost,
-      totalProfit: acc.totalProfit + printerProfit,
       otherIncome: acc.otherIncome + day.otherIncome,
       netProfit: acc.netProfit + day.netProfit,
+      totalRent: acc.totalRent + Math.abs(day.rent),
     };
-  }, { totalRevenue: 0, totalCost: 0, totalProfit: 0, otherIncome: 0, netProfit: 0 });
-
-  // 获取打印机列表
-  const printerNames = revenueData.length > 0 ? revenueData[0].printers.map(p => p.printerName) : [];
+  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalRent: 0 });
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  // 格式化时间戳
   const formatTimestamp = (date: Date) => {
     return date.toLocaleString('zh-CN', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
   };
+
+  // 悬浮提示样式
+  const tooltipStyle: React.CSSProperties = {
+    position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+    background: '#1f2937', color: 'white', padding: '8px 12px', borderRadius: '8px',
+    fontSize: '12px', whiteSpace: 'nowrap', zIndex: 100, marginTop: '4px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+  };
+
+  const filteredData = revenueData.filter(d => d.printers.some(p => p.count > 0) || d.otherIncome !== 0);
 
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
@@ -96,10 +108,8 @@ function RevenueManager() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <h1 className="page-title">营收管理</h1>
           {lastUpdate && (
-            <span style={{
-              fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
-              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px'
-            }}>
+            <span style={{ fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
+              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#22c55e', fontSize: '8px' }}>●</span>
               数据更新于 {formatTimestamp(lastUpdate)}
             </span>
@@ -126,7 +136,8 @@ function RevenueManager() {
         </div>
         <div className="kpi-card">
           <div className="kpi-label">本月总成本</div>
-          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{monthTotals.totalCost.toFixed(2)}</div>
+          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + monthTotals.totalRent).toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{monthTotals.totalRent.toFixed(0)}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">本月其他收入</div>
@@ -137,79 +148,101 @@ function RevenueManager() {
           <div className="kpi-value" style={{ color: monthTotals.netProfit >= 0 ? '#22c55e' : '#ef4444' }}>
             ¥{monthTotals.netProfit.toFixed(2)}
           </div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>已扣房租 ¥{(revenueData.length * 150).toFixed(0)}</div>
         </div>
       </div>
 
       {/* 每日明细表格 */}
       <div className="card">
-        <div className="card-title">每日营收明细</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>每日营收明细</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-sm btn-secondary" onClick={expandAll}>全部展开</button>
+            <button className="btn btn-sm btn-secondary" onClick={collapseAll}>全部折叠</button>
+          </div>
+        </div>
         {loading ? (
           <div className="loading">加载中...</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ minWidth: '1200px' }}>
-              <thead>
-                <tr>
-                  <th>日期</th>
-                  {printerNames.map(name => (
-                    <th key={name} colSpan={3} style={{ textAlign: 'center', background: '#e0f2fe' }}>{name}</th>
-                  ))}
-                  <th>其他收入</th>
-                  <th>总营业额</th>
-                  <th>房租</th>
-                  <th>纯利润</th>
-                  <th>操作</th>
-                </tr>
-                <tr>
-                  <th></th>
-                  {printerNames.map(name => (
-                    <React.Fragment key={name + '-sub'}>
-                      <th style={{ fontSize: '12px' }}>数量</th>
-                      <th style={{ fontSize: '12px' }}>成本</th>
-                      <th style={{ fontSize: '12px' }}>收益</th>
-                    </React.Fragment>
-                  ))}
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {revenueData.filter(d => d.printers.some(p => p.count > 0) || d.otherIncome !== 0).map((day) => (
-                  <tr key={day.date}>
-                    <td style={{ fontWeight: 500 }}>{day.date.slice(5)}</td>
-                    {day.printers.map(p => (
-                      <React.Fragment key={p.printerId}>
-                        <td>{p.count || '-'}</td>
-                        <td style={{ color: '#ef4444' }}>{p.cost > 0 ? `¥${p.cost.toFixed(2)}` : '-'}</td>
-                        <td style={{ color: '#22c55e' }}>{p.revenue > 0 ? `¥${p.revenue.toFixed(2)}` : '-'}</td>
-                      </React.Fragment>
-                    ))}
-                    <td>
-                      {day.otherIncome !== 0 ? (
-                        <span title={day.otherIncomeNote} style={{ color: '#3b82f6', cursor: 'help' }}>
-                          ¥{day.otherIncome.toFixed(2)}
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }}></th>
+                <th>日期</th>
+                <th>营业额</th>
+                <th>总成本</th>
+                <th>其他收入</th>
+                <th>纯利润</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.map((day) => {
+                const dayRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
+                const dayCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
+                const totalCost = dayCost + Math.abs(day.rent);
+                const isExpanded = expandedRows.has(day.date);
+                
+                return (
+                  <React.Fragment key={day.date}>
+                    <tr style={{ cursor: 'pointer' }} onClick={() => toggleRow(day.date)}>
+                      <td style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
+                        {isExpanded ? '▼' : '▶'}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{day.date.slice(5)}</td>
+                      <td style={{ fontWeight: 500 }}>¥{(dayRevenue + day.otherIncome).toFixed(2)}</td>
+                      <td style={{ position: 'relative' }} className="tooltip-trigger">
+                        <span style={{ color: '#ef4444', cursor: 'help' }}>¥{totalCost.toFixed(2)}</span>
+                        <div className="tooltip-content" style={tooltipStyle}>
+                          耗材成本: ¥{dayCost.toFixed(2)}<br/>房租: ¥{Math.abs(day.rent).toFixed(0)}
+                        </div>
+                      </td>
+                      <td>
+                        {day.otherIncome !== 0 ? (
+                          <span title={day.otherIncomeNote} style={{ color: '#3b82f6', cursor: 'help' }}>
+                            ¥{day.otherIncome.toFixed(2)}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td style={{ position: 'relative' }} className="tooltip-trigger">
+                        <span style={{ color: day.netProfit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600, cursor: 'help' }}>
+                          ¥{day.netProfit.toFixed(2)}
                         </span>
-                      ) : '-'}
-                    </td>
-                    <td style={{ fontWeight: 500 }}>¥{day.totalRevenue.toFixed(2)}</td>
-                    <td style={{ color: '#ef4444' }}>¥{Math.abs(day.rent).toFixed(0)}</td>
-                    <td style={{ color: day.netProfit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 500 }}>
-                      ¥{day.netProfit.toFixed(2)}
-                    </td>
-                    <td>
-                      <button className="btn btn-sm btn-secondary" onClick={() => openAddModal(day.date)}>
-                        +其他
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <div className="tooltip-content" style={tooltipStyle}>
+                          营业额: ¥{(dayRevenue + day.otherIncome).toFixed(2)}<br/>
+                          - 耗材: ¥{dayCost.toFixed(2)}<br/>
+                          - 房租: ¥{Math.abs(day.rent).toFixed(0)}<br/>
+                          = 纯利润: ¥{day.netProfit.toFixed(2)}
+                        </div>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <button className="btn btn-sm btn-secondary" onClick={() => { setSelectedDate(day.date); setShowAddModal(true); }}>
+                          +其他
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && day.printers.map(p => (
+                      <tr key={`${day.date}-${p.printerId}`} style={{ background: '#f9fafb' }}>
+                        <td></td>
+                        <td style={{ paddingLeft: '24px', color: '#6b7280', fontSize: '13px' }}>
+                          └ {p.printerName}
+                        </td>
+                        <td style={{ fontSize: '13px' }}>
+                          <span style={{ color: '#6b7280' }}>{p.count}张</span>
+                          <span style={{ marginLeft: '8px', color: '#22c55e' }}>¥{p.revenue.toFixed(2)}</span>
+                        </td>
+                        <td style={{ fontSize: '13px', color: '#ef4444' }}>¥{p.cost.toFixed(2)}</td>
+                        <td></td>
+                        <td style={{ fontSize: '13px', color: p.profit >= 0 ? '#22c55e' : '#ef4444' }}>
+                          ¥{p.profit.toFixed(2)}
+                        </td>
+                        <td></td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -240,6 +273,11 @@ function RevenueManager() {
           </div>
         </div>
       )}
+
+      <style>{`
+        .tooltip-trigger .tooltip-content { display: none; }
+        .tooltip-trigger:hover .tooltip-content { display: block; }
+      `}</style>
     </div>
   );
 }
