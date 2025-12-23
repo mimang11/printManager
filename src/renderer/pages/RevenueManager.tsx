@@ -13,6 +13,7 @@ function RevenueManager() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [includeFixedCost, setIncludeFixedCost] = useState(false); // 固定成本分摊开关
   
   // 其他收入弹窗
   const [showAddModal, setShowAddModal] = useState(false);
@@ -100,6 +101,15 @@ function RevenueManager() {
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  // Helper: 计算每日分摊的固定成本
+  const getDailyFixedCost = (monthlyFixedCost: number, daysInMonth: number) => {
+    return monthlyFixedCost / daysInMonth;
+  };
+
+  // 获取当月天数
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dailyRent = getDailyFixedCost(fixedCost, daysInMonth);
 
   const formatTimestamp = (date: Date) => {
     return date.toLocaleString('zh-CN', {
@@ -242,9 +252,36 @@ function RevenueManager() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div className="card-title" style={{ marginBottom: 0 }}>每日营收明细</div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn btn-sm btn-secondary" onClick={expandAll}>全部展开</button>
-            <button className="btn btn-sm btn-secondary" onClick={collapseAll}>全部折叠</button>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {/* 固定成本分摊开关 */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}>
+              <div 
+                onClick={() => setIncludeFixedCost(!includeFixedCost)}
+                style={{
+                  width: '44px', height: '24px', borderRadius: '12px',
+                  background: includeFixedCost ? 'linear-gradient(90deg, #3b82f6, #2563eb)' : '#d1d5db',
+                  position: 'relative', transition: 'all 0.3s ease', cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                  position: 'absolute', top: '2px', left: includeFixedCost ? '22px' : '2px',
+                  transition: 'all 0.3s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                }} />
+              </div>
+              <span style={{ color: includeFixedCost ? '#3b82f6' : '#6b7280', fontWeight: 500 }}>
+                包含固定成本分摊
+              </span>
+              {includeFixedCost && (
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                  (¥{dailyRent.toFixed(2)}/天)
+                </span>
+              )}
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-sm btn-secondary" onClick={expandAll}>全部展开</button>
+              <button className="btn btn-sm btn-secondary" onClick={collapseAll}>全部折叠</button>
+            </div>
           </div>
         </div>
         {loading ? (
