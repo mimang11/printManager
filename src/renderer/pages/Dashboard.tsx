@@ -22,6 +22,7 @@ function Dashboard() {
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
   // 弹窗状态
   const [showRevenueModal, setShowRevenueModal] = useState(false);
@@ -38,6 +39,7 @@ function Dashboard() {
       ]);
       setPrinters(printerList);
       setRecords(recordList);
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -276,10 +278,28 @@ function Dashboard() {
   const periodLabel = viewMode === 'day' ? '当日' : viewMode === 'month' ? '本月' : '本年';
   const prevLabel = viewMode === 'day' ? '昨日' : viewMode === 'month' ? '上月' : '去年';
 
+  const formatTimestamp = (date: Date) => {
+    return date.toLocaleString('zh-CN', {
+      month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  };
+
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">数据看板</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h1 className="page-title">数据看板</h1>
+          {lastUpdate && (
+            <span style={{
+              fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
+              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+            }}>
+              <span style={{ color: '#22c55e', fontSize: '8px' }}>●</span>
+              数据更新于 {formatTimestamp(lastUpdate)}
+            </span>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={viewMode} onChange={(e) => setViewMode(e.target.value as any)}>
             <option value="day">按日</option>

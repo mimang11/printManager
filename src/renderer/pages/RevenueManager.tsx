@@ -93,7 +93,18 @@ function RevenueManager() {
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
       <div className="page-header">
-        <h1 className="page-title">营收管理</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h1 className="page-title">营收管理</h1>
+          {lastUpdate && (
+            <span style={{
+              fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
+              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+            }}>
+              <span style={{ color: '#22c55e', fontSize: '8px' }}>●</span>
+              数据更新于 {formatTimestamp(lastUpdate)}
+            </span>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
