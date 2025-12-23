@@ -481,6 +481,45 @@ function RevenueManager() {
         </div>
       )}
 
+      {/* 损耗上报弹窗 */}
+      {showWasteModal && (
+        <div className="modal-overlay" onClick={() => setShowWasteModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">🗑️ 上报损耗 - {wastePrinterName}</h2>
+              <button className="modal-close" onClick={() => setShowWasteModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>日期: {wasteDate}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>物理印量: {wasteMaxCount} 张</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">损耗数量 (张)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max={wasteMaxCount}
+                  className="form-input" 
+                  value={wasteCount}
+                  onChange={(e) => setWasteCount(Math.min(Math.max(0, parseInt(e.target.value) || 0), wasteMaxCount))} 
+                />
+                <p className="form-hint">卡纸、错打等不产生收益的打印数量 (最大: {wasteMaxCount})</p>
+              </div>
+              <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', fontSize: '13px' }}>
+                <strong>计算说明:</strong><br/>
+                有效印量 = {wasteMaxCount} - {wasteCount} = <strong>{wasteMaxCount - wasteCount}</strong> 张<br/>
+                营收按有效印量计算，成本按物理印量计算
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowWasteModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSubmitWaste}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .tooltip-trigger .tooltip-content { display: none; }
         .tooltip-trigger:hover .tooltip-content { display: block; }

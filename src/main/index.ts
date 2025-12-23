@@ -199,6 +199,7 @@ ipcMain.handle('refresh-all', async (): Promise<ScrapeResult[]> => {
         date: today,
         total_counter: result.counter,
         daily_increment: dailyIncrement > 0 ? dailyIncrement : 0,
+        waste_count: existingIndex >= 0 ? (records[existingIndex].waste_count || 0) : 0,
         timestamp: Date.now(),
       };
 
@@ -255,6 +256,7 @@ ipcMain.handle('refresh-one', async (_, printerId: string): Promise<ScrapeResult
       date: today,
       total_counter: result.counter,
       daily_increment: dailyIncrement > 0 ? dailyIncrement : 0,
+      waste_count: existingIndex >= 0 ? (records[existingIndex].waste_count || 0) : 0,
       timestamp: Date.now(),
     };
 
@@ -488,6 +490,7 @@ ipcMain.handle('import-history-data', async () => {
           date: dateStr,
           total_counter: totalCounter,
           daily_increment: dailyIncrement,
+          waste_count: existingIndex >= 0 ? (records[existingIndex].waste_count || 0) : 0,
           timestamp: Date.now(),
         };
 
