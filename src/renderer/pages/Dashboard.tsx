@@ -413,9 +413,21 @@ function Dashboard() {
 
       {/* 图表区域 */}
       <div className="grid-2">
-        <div className="card">
-          <div className="card-title">
-            {viewMode === 'year' ? '月度印量走势' : viewMode === 'month' ? '本月每日印量' : '近7天印量'} (按设备)
+        <div className="card" onClick={resetSelection}>
+          <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>
+              {viewMode === 'year' ? '月度印量走势' : viewMode === 'month' ? '本月每日印量' : '近7天印量'}
+              {selectedPrinterName && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>- {selectedPrinterName}</span>}
+            </span>
+            {selectedPrinter && (
+              <button 
+                className="btn btn-sm btn-secondary" 
+                onClick={(e) => { e.stopPropagation(); resetSelection(); }}
+                style={{ fontSize: '12px' }}
+              >
+                显示全部设备
+              </button>
+            )}
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -428,11 +440,11 @@ function Dashboard() {
                   formatter={(value: number) => [`${value} 张`, '']}
                 />
                 <Legend />
-                {printers.map((printer, index) => (
+                {filteredPrinters.map((printer, index) => (
                   <Bar 
                     key={printer.id} 
                     dataKey={printer.alias} 
-                    fill={COLORS[index % COLORS.length]}
+                    fill={COLORS[printers.findIndex(p => p.id === printer.id) % COLORS.length]}
                     radius={[4, 4, 0, 0]}
                     minPointSize={3}
                     maxBarSize={50}
@@ -443,19 +455,40 @@ function Dashboard() {
           </div>
         </div>
         <div className="card">
-          <div className="card-title">{periodLabel}设备贡献占比</div>
+          <div className="card-title">
+            {periodLabel}设备贡献占比
+            <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px' }}>(点击扇区筛选)</span>
+          </div>
           <div className="chart-container">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" labelLine={false}
+                  <Pie 
+                    data={pieData} 
+                    cx="50%" 
+                    cy="50%" 
+                    labelLine={false}
                     label={({ name, percentage }) => `${name}: ${percentage}%`}
-                    outerRadius={80} dataKey="value">
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                    outerRadius={80} 
+                    dataKey="value"
+                    onClick={handlePieClick}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {pieData.map((entry, index) => {
+                      const printer = printers.find(p => p.alias === entry.name);
+                      const isSelected = selectedPrinter && printer?.id === selectedPrinter;
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]}
+                          stroke={isSelected ? '#1f2937' : 'none'}
+                          strokeWidth={isSelected ? 3 : 0}
+                          opacity={selectedPrinter && !isSelected ? 0.4 : 1}
+                        />
+                      );
+                    })}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value: number) => [`${value} 张`, '']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
