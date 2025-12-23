@@ -27,7 +27,8 @@
     ],
     "win": {
       "target": "portable",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "icon": "build/icon.jpg"
     },
     "portable": {
       "artifactName": "PrinterManager.exe"
