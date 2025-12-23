@@ -453,7 +453,7 @@ function Dashboard() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                  formatter={(value: number) => [`${value} 张`, '']}
+                  formatter={(value: number | undefined) => [`${value ?? 0} 张`, '']}
                 />
                 <Legend />
                 {filteredPrinters.map((printer, index) => (
