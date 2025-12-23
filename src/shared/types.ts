@@ -36,6 +36,7 @@ export interface DailyRecord {
   date: string;                  // 日期 (YYYY-MM-DD 格式，作为主索引)
   total_counter: number;         // 当日抓取的总读数
   daily_increment: number;       // 当日新增印量 (今日总数 - 昨日总数)
+  waste_count: number;           // 损耗数量 (卡纸、错打等，默认0)
   timestamp: number;             // 记录创建的时间戳
 }
 
@@ -145,9 +146,10 @@ export interface DailyRevenueDetail {
 export interface PrinterDailyData {
   printerId: string;
   printerName: string;
-  count: number;                 // 打印数量
-  cost: number;                  // 成本
-  revenue: number;               // 收益
+  count: number;                 // 打印数量（物理增量）
+  wasteCount?: number;           // 损耗数量
+  cost: number;                  // 成本（基于物理增量）
+  revenue: number;               // 收益（基于有效印量）
   profit: number;                // 利润
 }
 
@@ -209,7 +211,9 @@ export interface ElectronAPI {
   addOtherRevenue: (revenue: Omit<OtherRevenue, 'id' | 'timestamp'>) => Promise<OtherRevenue>;
   deleteOtherRevenue: (id: string) => Promise<boolean>;
   // 导入历史数据
-  importHistoryData: () => Promise<{ success: boolean; message: string; matchedPrinters?: string[] }>;
+  importHistoryData: () => Promise<{ success: boolean; message: string; matchedPrinters?: string[]; unmatchedHeaders?: string[] }>;
+  // 更新损耗数量
+  updateWasteCount: (date: string, printerId: string, wasteCount: number) => Promise<boolean>;
 }
 
 // 扩展 Window 接口，添加 electronAPI

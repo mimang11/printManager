@@ -404,23 +404,45 @@ ipcMain.handle('import-history-data', async () => {
     // 获取表头（除了日期列）
     const headers = Object.keys(data[0]).filter(h => h !== '日期');
     
-    // 匹配打印机别名
+    // 只进行精确匹配打印机别名
     const printerMap = new Map<string, PrinterConfig>();
+    const unmatchedHeaders: string[] = [];
+    
     headers.forEach(header => {
       const printer = printers.find(p => p.alias === header);
       if (printer) {
         printerMap.set(header, printer);
+      } else {
+        unmatchedHeaders.push(header);
       }
     });
 
     if (printerMap.size === 0) {
-      return { success: false, message: '未找到匹配的打印机别名，请检查表头' };
+      const printerAliases = printers.map(p => p.alias).join('、');
+      return { 
+        success: false, 
+        message: `未找到匹配的打印机别名！\n\nExcel表头: ${headers.join('、')}\n系统中的打印机: ${printerAliases}\n\n请修改Excel表头与系统中的打印机别名完全一致。`
+      };
+    }
+
+    if (unmatchedHeaders.length > 0) {
+      console.log(`以下表头未匹配到打印机，将跳过: ${unmatchedHeaders.join('、')}`);
     }
 
     let importedCount = 0;
     let skippedCount = 0;
 
-    for (const row of data) {
+    // 按日期排序数据
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = typeof a['日期'] === 'number' ? a['日期'] : new Date(a['日期']).getTime();
+      const dateB = typeof b['日期'] === 'number' ? b['日期'] : new Date(b['日期']).getTime();
+      return dateA - dateB;
+    });
+
+    // 记录每台打印机的前一天计数器值
+    const prevCounters = new Map<string, number>();
+
+    for (const row of sortedData) {
       let dateStr = row['日期'];
       if (!dateStr) continue;
 
@@ -444,8 +466,16 @@ ipcMain.handle('import-history-data', async () => {
       }
 
       for (const [header, printer] of printerMap) {
-        const count = parseInt(row[header]) || 0;
-        if (count <= 0) continue;
+        const totalCounter = parseInt(row[header]) || 0;
+        if (totalCounter <= 0) continue;
+
+        // 计算每日增量
+        const prevCounter = prevCounters.get(printer.id) || 0;
+        const dailyIncrement = prevCounter > 0 ? Math.max(0, totalCounter - prevCounter) : 0;
+        prevCounters.set(printer.id, totalCounter);
+
+        // 第一天没有增量数据，跳过
+        if (prevCounter === 0) continue;
 
         // 检查是否已存在该日期该打印机的记录
         const existingIndex = records.findIndex(
@@ -456,8 +486,8 @@ ipcMain.handle('import-history-data', async () => {
           record_id: existingIndex >= 0 ? records[existingIndex].record_id : uuidv4(),
           printer_id: printer.id,
           date: dateStr,
-          total_counter: count,
-          daily_increment: count,
+          total_counter: totalCounter,
+          daily_increment: dailyIncrement,
           timestamp: Date.now(),
         };
 
@@ -476,10 +506,31 @@ ipcMain.handle('import-history-data', async () => {
       success: true,
       message: `导入成功！共导入 ${importedCount} 条记录${skippedCount > 0 ? `，跳过 ${skippedCount} 行无效数据` : ''}`,
       matchedPrinters: Array.from(printerMap.keys()),
+      unmatchedHeaders: unmatchedHeaders.length > 0 ? unmatchedHeaders : undefined,
     };
   } catch (error: any) {
     return { success: false, message: `导入失败: ${error.message}` };
   }
+});
+
+// ============================================
+// IPC 处理器 - 更新损耗数量
+// ============================================
+
+ipcMain.handle('update-waste-count', async (_, date: string, printerId: string, wasteCount: number) => {
+  const records = await loadRecords();
+  const index = records.findIndex(r => r.date === date && r.printer_id === printerId);
+  
+  if (index === -1) {
+    return false;
+  }
+  
+  // 确保 wasteCount 不超过物理增量
+  const maxWaste = records[index].daily_increment;
+  records[index].waste_count = Math.min(Math.max(0, wasteCount), maxWaste);
+  
+  await saveRecords(records);
+  return true;
 });
 
 /**

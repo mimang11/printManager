@@ -83,6 +83,11 @@ const electronAPI: ElectronAPI = {
   
   // 导入历史数据
   importHistoryData: () => ipcRenderer.invoke('import-history-data'),
+
+  // ========== 损耗管理 ==========
+  
+  // 更新损耗数量
+  updateWasteCount: (date, printerId, wasteCount) => ipcRenderer.invoke('update-waste-count', date, printerId, wasteCount),
 };
 
 // 使用 contextBridge 安全地暴露 API

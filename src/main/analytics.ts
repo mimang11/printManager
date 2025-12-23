@@ -31,19 +31,34 @@ function evaluateFormula(formula: string | undefined, count: number, defaultValu
 
 /**
  * 计算打印机的收益和成本
+ * @param printer 打印机配置
+ * @param physicalCount 物理增量（计数器增量）
+ * @param wasteCount 损耗数量（默认0）
+ * @returns revenue: 基于有效印量计算, cost: 基于物理增量计算
  */
-function calculatePrinterFinancials(printer: PrinterConfig, count: number): { revenue: number; cost: number } {
+function calculatePrinterFinancials(
+  printer: PrinterConfig, 
+  physicalCount: number, 
+  wasteCount: number = 0
+): { revenue: number; cost: number; billableCount: number } {
+  // 有效印量 = 物理增量 - 损耗
+  const billableCount = Math.max(0, physicalCount - wasteCount);
+  
+  // 营收基于有效印量
   const revenue = evaluateFormula(
     printer.financials.revenue_formula, 
-    count, 
+    billableCount, 
     printer.financials.price_per_page
   );
+  
+  // 成本基于物理增量（损耗也消耗成本）
   const cost = evaluateFormula(
     printer.financials.cost_formula, 
-    count, 
+    physicalCount, 
     printer.financials.cost_per_page
   );
-  return { revenue, cost };
+  
+  return { revenue, cost, billableCount };
 }
 
 /**
@@ -127,7 +142,8 @@ export function calculateDashboardStats(
   thisMonthRecords.forEach(r => {
     const printer = printerMap.get(r.printer_id);
     if (printer) {
-      const { revenue, cost } = calculatePrinterFinancials(printer, r.daily_increment);
+      const wasteCount = r.waste_count || 0;
+      const { revenue, cost } = calculatePrinterFinancials(printer, r.daily_increment, wasteCount);
       monthRevenue += revenue;
       monthCost += cost;
     }
@@ -143,7 +159,8 @@ export function calculateDashboardStats(
   lastMonthRecords.forEach(r => {
     const printer = printerMap.get(r.printer_id);
     if (printer) {
-      const { revenue } = calculatePrinterFinancials(printer, r.daily_increment);
+      const wasteCount = r.waste_count || 0;
+      const { revenue } = calculatePrinterFinancials(printer, r.daily_increment, wasteCount);
       lastMonthRevenue += revenue;
     }
   });
@@ -333,7 +350,8 @@ export function calculateMonthlyRevenueDetail(
       const printer = printerMap.get(r.printer_id);
       if (printer) {
         count += r.daily_increment;
-        const financials = calculatePrinterFinancials(printer, r.daily_increment);
+        const wasteCount = r.waste_count || 0;
+        const financials = calculatePrinterFinancials(printer, r.daily_increment, wasteCount);
         revenue += financials.revenue;
         cost += financials.cost;
       }
@@ -377,7 +395,8 @@ export function calculateMonthlyRevenueData(
     const printerDataList: PrinterDailyData[] = printers.map(printer => {
       const printerRecords = dayRecords.filter(r => r.printer_id === printer.id);
       const count = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
-      const financials = calculatePrinterFinancials(printer, count);
+      const wasteCount = printerRecords.reduce((sum, r) => sum + (r.waste_count || 0), 0);
+      const financials = calculatePrinterFinancials(printer, count, wasteCount);
       const revenue = Math.round(financials.revenue * 100) / 100;
       const cost = Math.round(financials.cost * 100) / 100;
       const profit = Math.round((revenue - cost) * 100) / 100;
@@ -386,6 +405,7 @@ export function calculateMonthlyRevenueData(
         printerId: printer.id,
         printerName: printer.alias,
         count,
+        wasteCount,
         cost,
         revenue,
         profit,

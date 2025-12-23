@@ -22,6 +22,14 @@ function RevenueManager() {
   const [otherNote, setOtherNote] = useState('');
   const [importing, setImporting] = useState(false);
 
+  // 损耗上报弹窗
+  const [showWasteModal, setShowWasteModal] = useState(false);
+  const [wasteDate, setWasteDate] = useState('');
+  const [wastePrinterId, setWastePrinterId] = useState('');
+  const [wastePrinterName, setWastePrinterName] = useState('');
+  const [wasteMaxCount, setWasteMaxCount] = useState(0);
+  const [wasteCount, setWasteCount] = useState(0);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -58,7 +66,14 @@ function RevenueManager() {
     try {
       const result = await window.electronAPI.importHistoryData();
       if (result.success) {
-        alert(result.message + (result.matchedPrinters ? `\n匹配的打印机: ${result.matchedPrinters.join(', ')}` : ''));
+        let msg = result.message;
+        if (result.matchedPrinters && result.matchedPrinters.length > 0) {
+          msg += `\n\n✅ 已录入的设备: ${result.matchedPrinters.join('、')}`;
+        }
+        if (result.unmatchedHeaders && result.unmatchedHeaders.length > 0) {
+          msg += `\n\n❌ 未匹配的表头(已跳过): ${result.unmatchedHeaders.join('、')}`;
+        }
+        alert(msg);
         loadData();
       } else {
         if (result.message !== '已取消') {
@@ -69,6 +84,27 @@ function RevenueManager() {
       alert('导入失败: ' + error);
     } finally {
       setImporting(false);
+    }
+  };
+
+  // 打开损耗上报弹窗
+  const openWasteModal = (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number) => {
+    setWasteDate(date);
+    setWastePrinterId(printerId);
+    setWastePrinterName(printerName);
+    setWasteMaxCount(maxCount);
+    setWasteCount(currentWaste);
+    setShowWasteModal(true);
+  };
+
+  // 提交损耗
+  const handleSubmitWaste = async () => {
+    try {
+      await window.electronAPI.updateWasteCount(wasteDate, wastePrinterId, wasteCount);
+      setShowWasteModal(false);
+      loadData();
+    } catch (error) {
+      alert('更新失败: ' + error);
     }
   };
 
