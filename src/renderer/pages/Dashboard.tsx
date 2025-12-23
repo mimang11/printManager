@@ -489,15 +489,16 @@ function Dashboard() {
                     dataKey="value"
                     onClick={handlePieClick}
                     style={{ cursor: 'pointer', outline: 'none' }}
-                    isAnimationActive={true}
-                    animationDuration={300}
-                    animationEasing="ease-out"
+                    isAnimationActive={false}
                   >
                     {pieCellData.map((cellProps) => (
                       <Cell {...cellProps} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number | undefined) => [`${value ?? 0} 张`, '']} />
+                  <Tooltip 
+                    formatter={(value: number | undefined, name: string) => [`${value ?? 0} 张`, name]}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
