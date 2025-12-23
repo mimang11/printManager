@@ -488,8 +488,10 @@ function Dashboard() {
                     outerRadius={80} 
                     dataKey="value"
                     onClick={handlePieClick}
-                    style={{ cursor: 'pointer' }}
-                    isAnimationActive={false}
+                    style={{ cursor: 'pointer', outline: 'none' }}
+                    isAnimationActive={true}
+                    animationDuration={300}
+                    animationEasing="ease-out"
                   >
                     {pieCellData.map((cellProps) => (
                       <Cell {...cellProps} />

@@ -48,6 +48,19 @@ body {
   min-height: 100vh;
 }
 
+/* 移除饼图点击时的方形选择框 */
+.recharts-pie-sector,
+.recharts-sector {
+  outline: none !important;
+}
+.recharts-pie-sector:focus,
+.recharts-sector:focus {
+  outline: none !important;
+}
+svg:focus, path:focus {
+  outline: none !important;
+}
+
 /* 应用容器 */
 .app-container {
   display: flex;
