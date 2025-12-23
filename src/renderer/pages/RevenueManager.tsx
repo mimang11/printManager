@@ -240,28 +240,6 @@ function RevenueManager() {
           </div>
         </div>
       )}
-
-      {/* 右下角时间戳 */}
-      {lastUpdate && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          background: 'rgba(255,255,255,0.95)',
-          padding: '10px 16px',
-          borderRadius: '10px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          fontSize: '13px',
-          color: '#6b7280',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          zIndex: 100,
-        }}>
-          <span style={{ color: '#22c55e', fontSize: '10px' }}>●</span>
-          最后更新: {formatTimestamp(lastUpdate)}
-        </div>
-      )}
     </div>
   );
 }
