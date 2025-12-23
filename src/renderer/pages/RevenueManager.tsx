@@ -11,6 +11,7 @@ function RevenueManager() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [revenueData, setRevenueData] = useState<MonthlyRevenueData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
   // 其他收入弹窗
   const [showAddModal, setShowAddModal] = useState(false);
@@ -24,6 +25,7 @@ function RevenueManager() {
     try {
       const data = await window.electronAPI.getMonthlyRevenueData(year, month);
       setRevenueData(data);
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('加载失败:', error);
     } finally {
@@ -74,23 +76,34 @@ function RevenueManager() {
     };
   }, { totalRevenue: 0, totalCost: 0, totalProfit: 0, otherIncome: 0, netProfit: 0 });
 
-  // 获取打印机列表（从第一条有数据的记录）
+  // 获取打印机列表
   const printerNames = revenueData.length > 0 ? revenueData[0].printers.map(p => p.printerName) : [];
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+  // 格式化时间戳
+  const formatTimestamp = (date: Date) => {
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  };
+
   return (
-    <div>
+    <div style={{ position: 'relative', minHeight: '100%' }}>
       <div className="page-header">
         <h1 className="page-title">营收管理</h1>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select className="form-input" style={{ width: '100px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
           </select>
-          <select className="form-input" style={{ width: '80px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {months.map(m => <option key={m} value={m}>{m}月</option>)}
           </select>
+          <button className="btn btn-primary" onClick={loadData} disabled={loading}>
+            {loading ? '加载中...' : '刷新'}
+          </button>
         </div>
       </div>
 
@@ -214,6 +227,28 @@ function RevenueManager() {
               <button className="btn btn-primary" onClick={handleAddOther}>保存</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 右下角时间戳 */}
+      {lastUpdate && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'rgba(255,255,255,0.95)',
+          padding: '10px 16px',
+          borderRadius: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          fontSize: '13px',
+          color: '#6b7280',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 100,
+        }}>
+          <span style={{ color: '#22c55e', fontSize: '10px' }}>●</span>
+          最后更新: {formatTimestamp(lastUpdate)}
         </div>
       )}
     </div>
