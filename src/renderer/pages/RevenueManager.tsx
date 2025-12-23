@@ -74,14 +74,29 @@ function RevenueManager() {
   const monthTotals = revenueData.reduce((acc, day) => {
     const printerRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
     const printerCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
+    const totalCount = day.printers.reduce((sum, p) => sum + p.count, 0);
     return {
       totalRevenue: acc.totalRevenue + printerRevenue,
       totalCost: acc.totalCost + printerCost,
       otherIncome: acc.otherIncome + day.otherIncome,
       netProfit: acc.netProfit + day.netProfit,
       totalRent: acc.totalRent + Math.abs(day.rent),
+      totalCount: acc.totalCount + totalCount,
     };
-  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalRent: 0 });
+  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalRent: 0, totalCount: 0 });
+
+  // 盈亏平衡分析
+  const avgProfitPerPage = monthTotals.totalCount > 0 
+    ? (monthTotals.totalRevenue - monthTotals.totalCost) / monthTotals.totalCount 
+    : 0;
+  const fixedCost = monthTotals.totalRent; // 固定成本（房租）
+  const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - fixedCost + monthTotals.otherIncome;
+  const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil(fixedCost / avgProfitPerPage) : 0;
+  const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 
+    ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) 
+    : 0;
+  const breakEvenProgress = breakEvenPages > 0 ? Math.min((monthTotals.totalCount / breakEvenPages) * 100, 100) : 0;
+  const isBreakEven = currentProfit >= 0;
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -147,6 +162,78 @@ function RevenueManager() {
           <div className="kpi-label">本月纯利润</div>
           <div className="kpi-value" style={{ color: monthTotals.netProfit >= 0 ? '#22c55e' : '#ef4444' }}>
             ¥{monthTotals.netProfit.toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* 盈亏平衡分析 */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card-title">📊 盈亏平衡分析</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+          <div>
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>固定成本（房租）：</span>
+              <span style={{ fontWeight: 600, color: '#ef4444' }}>¥{fixedCost.toFixed(0)}</span>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>平均单张利润：</span>
+              <span style={{ fontWeight: 600, color: '#3b82f6' }}>¥{avgProfitPerPage.toFixed(3)}</span>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>回本所需印量：</span>
+              <span style={{ fontWeight: 600 }}>{breakEvenPages.toLocaleString()} 张</span>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>本月已打印：</span>
+              <span style={{ fontWeight: 600, color: '#22c55e' }}>{monthTotals.totalCount.toLocaleString()} 张</span>
+            </div>
+          </div>
+          <div>
+            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, fontSize: '15px' }}>回本进度</span>
+              <span style={{ 
+                fontWeight: 700, fontSize: '18px', 
+                color: isBreakEven ? '#22c55e' : '#f59e0b' 
+              }}>
+                {breakEvenProgress.toFixed(1)}%
+              </span>
+            </div>
+            <div style={{ 
+              height: '24px', background: '#e5e7eb', borderRadius: '12px', 
+              overflow: 'hidden', position: 'relative' 
+            }}>
+              <div style={{
+                height: '100%', borderRadius: '12px',
+                background: isBreakEven 
+                  ? 'linear-gradient(90deg, #22c55e, #16a34a)' 
+                  : 'linear-gradient(90deg, #f59e0b, #eab308)',
+                width: `${breakEvenProgress}%`,
+                transition: 'width 0.5s ease',
+              }} />
+              {breakEvenProgress >= 100 && (
+                <span style={{
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                  color: 'white', fontSize: '12px', fontWeight: 600
+                }}>✓ 已回本</span>
+              )}
+            </div>
+            <div style={{ marginTop: '12px', textAlign: 'center' }}>
+              {isBreakEven ? (
+                <span style={{ 
+                  color: '#22c55e', fontWeight: 600, fontSize: '16px',
+                  background: '#dcfce7', padding: '8px 16px', borderRadius: '8px'
+                }}>
+                  🎉 本月已回本，盈利 ¥{currentProfit.toFixed(2)}
+                </span>
+              ) : (
+                <span style={{ 
+                  color: '#f59e0b', fontWeight: 600, fontSize: '15px',
+                  background: '#fef3c7', padding: '8px 16px', borderRadius: '8px'
+                }}>
+                  距离回本还差 <strong style={{ color: '#ef4444' }}>{pagesNeeded.toLocaleString()}</strong> 张
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
