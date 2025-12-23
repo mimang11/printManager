@@ -15,6 +15,7 @@ export interface PrinterConfig {
   alias: string;                 // 自定义别名 (例如: "财务室夏普")
   target_url: string;            // 抓取地址 (打印机的网页地址)
   dom_selector: string;          // CSS 选择器 (用于定位计数器数值)
+  printer_type?: 'mono' | 'color'; // 打印机类型: mono=黑白机, color=彩机
   financials: {
     cost_per_page: number;       // 单张成本 (例如: 0.05 元)
     price_per_page: number;      // 单张售价 (例如: 0.50 元)
