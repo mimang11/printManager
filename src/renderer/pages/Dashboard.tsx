@@ -488,7 +488,7 @@ function Dashboard() {
                       );
                     })}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} 张`, '']} />
+                  <Tooltip formatter={(value: number, name: string) => [`${value} 张`, name]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
