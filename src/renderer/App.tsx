@@ -7,8 +7,10 @@ import Dashboard from './pages/Dashboard';
 import DeviceManager from './pages/DeviceManager';
 import DataComparison from './pages/DataComparison';
 import RevenueManager from './pages/RevenueManager';
+import SPCodeQuery from './pages/SPCodeQuery';
+import ErrorCodeQuery from './pages/ErrorCodeQuery';
 
-type PageType = 'dashboard' | 'devices' | 'comparison' | 'revenue';
+type PageType = 'dashboard' | 'devices' | 'comparison' | 'revenue' | 'spcode' | 'errorcode';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
@@ -35,6 +37,8 @@ function App() {
       case 'devices': return <DeviceManager />;
       case 'comparison': return <DataComparison />;
       case 'revenue': return <RevenueManager />;
+      case 'spcode': return <SPCodeQuery />;
+      case 'errorcode': return <ErrorCodeQuery />;
       default: return <Dashboard />;
     }
   };
@@ -59,6 +63,14 @@ function App() {
           <div className={`nav-item ${currentPage === 'revenue' ? 'active' : ''}`}
             onClick={() => setCurrentPage('revenue')}>
             <span className="nav-icon">💰</span>营收管理
+          </div>
+          <div className={`nav-item ${currentPage === 'spcode' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('spcode')}>
+            <span className="nav-icon">🔧</span>SP代码查询
+          </div>
+          <div className={`nav-item ${currentPage === 'errorcode' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('errorcode')}>
+            <span className="nav-icon">⚠️</span>错误代码查询
           </div>
         </nav>
       </aside>
