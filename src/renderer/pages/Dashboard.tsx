@@ -15,7 +15,7 @@ function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState(now.getDate());
-  const [viewMode, setViewMode] = useState<'day' | 'month' | 'year'>('month');
+  const [viewMode, setViewMode] = useState<'day' | 'month' | 'year'>('day');
   
   // 数据状态
   const [printers, setPrinters] = useState<PrinterConfig[]>([]);
@@ -51,6 +51,7 @@ function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
+      // 抓取当天打印数量并存入数据
       await window.electronAPI.refreshAll();
       await loadData();
     } catch (error) {
@@ -61,7 +62,8 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    // 页面打开时自动更新一次
+    handleRefresh();
   }, []);
 
   // 根据视图模式获取日期范围
