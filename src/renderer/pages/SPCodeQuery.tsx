@@ -1,62 +1,45 @@
 /**
  * SP代码查询页面 - 查询打印机SP维修代码
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import codesData from '../../ricoh_mp9002_codes.json';
 
-// SP代码数据库（可根据实际需要扩展）
-const SP_CODES: Record<string, { name: string; description: string; steps: string[] }> = {
-  'SP5-810': {
-    name: '定影单元寿命重置',
-    description: '重置定影单元计数器',
-    steps: ['进入SP模式', '选择SP5-810', '按执行键重置']
-  },
-  'SP5-811': {
-    name: '转印带寿命重置',
-    description: '重置转印带计数器',
-    steps: ['进入SP模式', '选择SP5-811', '按执行键重置']
-  },
-  'SP5-812': {
-    name: '显影单元寿命重置',
-    description: '重置显影单元计数器',
-    steps: ['进入SP模式', '选择SP5-812', '按执行键重置']
-  },
-  'SP5-820': {
-    name: '感光鼓寿命重置',
-    description: '重置感光鼓计数器',
-    steps: ['进入SP模式', '选择SP5-820', '按执行键重置']
-  },
-  'SP5-301': {
-    name: '总计数器查看',
-    description: '查看打印机总打印量',
-    steps: ['进入SP模式', '选择SP5-301', '查看显示数值']
-  },
-  'SP5-302': {
-    name: '彩色计数器查看',
-    description: '查看彩色打印量',
-    steps: ['进入SP模式', '选择SP5-302', '查看显示数值']
-  },
-  'SP2-001': {
-    name: '系统初始化',
-    description: '系统参数初始化',
-    steps: ['进入SP模式', '选择SP2-001', '确认执行', '等待重启']
-  },
-  'SP5-832': {
-    name: '废粉盒计数重置',
-    description: '重置废粉盒计数器',
-    steps: ['进入SP模式', '选择SP5-832', '按执行键重置']
-  },
-};
+interface SPCode {
+  code: string;
+  description: string;
+}
+
+const spCodes: SPCode[] = codesData.spCodes;
 
 function SPCodeQuery() {
   const [searchCode, setSearchCode] = useState('');
-  const [searchResult, setSearchResult] = useState<typeof SP_CODES[string] | null>(null);
+  const [searchResult, setSearchResult] = useState<SPCode | null>(null);
   const [notFound, setNotFound] = useState(false);
+
+  // 过滤显示的SP代码列表
+  const filteredCodes = useMemo(() => {
+    if (!searchCode.trim()) {
+      return spCodes.slice(0, 50); // 默认显示前50个
+    }
+    const keyword = searchCode.trim().toUpperCase().replace('SP', '');
+    return spCodes.filter(sp => 
+      sp.code.toUpperCase().includes(keyword) || 
+      sp.description.includes(searchCode.trim())
+    ).slice(0, 100);
+  }, [searchCode]);
 
   const handleSearch = () => {
     const code = searchCode.trim().toUpperCase();
     if (!code) return;
     
-    const result = SP_CODES[code];
+    // 标准化搜索代码
+    const normalizedCode = code.startsWith('SP') ? code : 'SP' + code;
+    
+    const result = spCodes.find(sp => 
+      sp.code.toUpperCase() === normalizedCode ||
+      sp.code.toUpperCase() === code
+    );
+    
     if (result) {
       setSearchResult(result);
       setNotFound(false);
@@ -76,6 +59,9 @@ function SPCodeQuery() {
     <div>
       <div className="page-header">
         <h1 className="page-title">SP代码查询</h1>
+        <span style={{ color: '#6b7280', fontSize: '14px' }}>
+          共 {spCodes.length} 个SP代码 (理光 MP9002)
+        </span>
       </div>
 
       <div className="card">
@@ -84,11 +70,11 @@ function SPCodeQuery() {
           <input
             type="text"
             className="form-input"
-            placeholder="输入SP代码，如 SP5-810"
+            placeholder="输入SP代码或关键词，如 SP5801 或 定影"
             value={searchCode}
             onChange={(e) => setSearchCode(e.target.value)}
             onKeyPress={handleKeyPress}
-            style={{ flex: 1, maxWidth: '300px' }}
+            style={{ flex: 1, maxWidth: '400px' }}
           />
           <button className="btn btn-primary" onClick={handleSearch}>
             查询
@@ -103,19 +89,11 @@ function SPCodeQuery() {
             padding: '20px' 
           }}>
             <h3 style={{ margin: '0 0 12px 0', color: '#166534' }}>
-              {searchCode.toUpperCase()} - {searchResult.name}
+              {searchResult.code}
             </h3>
-            <p style={{ margin: '0 0 16px 0', color: '#4b5563' }}>
+            <p style={{ margin: '0', color: '#4b5563', lineHeight: '1.6' }}>
               {searchResult.description}
             </p>
-            <div>
-              <strong style={{ color: '#374151' }}>操作步骤：</strong>
-              <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#4b5563' }}>
-                {searchResult.steps.map((step, index) => (
-                  <li key={index} style={{ marginBottom: '4px' }}>{step}</li>
-                ))}
-              </ol>
-            </div>
           </div>
         )}
 
@@ -133,33 +111,41 @@ function SPCodeQuery() {
       </div>
 
       <div className="card" style={{ marginTop: '20px' }}>
-        <div className="card-title">常用SP代码列表</div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>代码</th>
-              <th>名称</th>
-              <th>说明</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(SP_CODES).map(([code, info]) => (
-              <tr 
-                key={code} 
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setSearchCode(code);
-                  setSearchResult(info);
-                  setNotFound(false);
-                }}
-              >
-                <td style={{ fontWeight: 600, color: '#3b82f6' }}>{code}</td>
-                <td>{info.name}</td>
-                <td style={{ color: '#6b7280' }}>{info.description}</td>
+        <div className="card-title">
+          SP代码列表 
+          {searchCode.trim() && <span style={{ fontWeight: 'normal', color: '#6b7280' }}> (搜索结果: {filteredCodes.length})</span>}
+        </div>
+        <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: '120px' }}>代码</th>
+                <th>说明</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredCodes.map((sp) => (
+                <tr 
+                  key={sp.code} 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSearchCode(sp.code);
+                    setSearchResult(sp);
+                    setNotFound(false);
+                  }}
+                >
+                  <td style={{ fontWeight: 600, color: '#3b82f6' }}>{sp.code}</td>
+                  <td style={{ color: '#4b5563' }}>{sp.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!searchCode.trim() && (
+          <div style={{ marginTop: '12px', color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>
+            显示前50条，输入关键词搜索更多
+          </div>
+        )}
       </div>
     </div>
   );

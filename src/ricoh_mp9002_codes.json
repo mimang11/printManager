@@ -1,0 +1,3844 @@
+{
+  "model": "理光 MP9002 黑白复印机",
+  "extractedAt": "2025-12-25T04:35:00.362Z",
+  "errorCodes": [
+    {
+      "code": "SC101",
+      "description": "曝光灯错误"
+    },
+    {
+      "code": "SC120",
+      "description": "扫描仪原位错误1"
+    },
+    {
+      "code": "SC121",
+      "description": "扫描仪原位错误2"
+    },
+    {
+      "code": "SC141",
+      "description": "黑电平检测错误"
+    },
+    {
+      "code": "SC142",
+      "description": "白电平检测错误"
+    },
+    {
+      "code": "SC144",
+      "description": "SBU传输错误"
+    },
+    {
+      "code": "SC161-01",
+      "description": "IP U错误(LSYNC异常)"
+    },
+    {
+      "code": "SC161-02",
+      "description": "IPU错误(Ri响应异常)"
+    },
+    {
+      "code": "SC161-03",
+      "description": "IPU错误(Aruru运行异常)"
+    },
+    {
+      "code": "SC165",
+      "description": "数据复制安全单元错误"
+    },
+    {
+      "code": "SC181",
+      "description": "翻转风扇错误"
+    },
+    {
+      "code": "SC182",
+      "description": "扫描仪风扇错误：右侧"
+    },
+    {
+      "code": "SC185",
+      "description": "CIS传输错误"
+    },
+    {
+      "code": "SC186",
+      "description": "CIS LED错误"
+    },
+    {
+      "code": "SC187",
+      "description": "CIS黑电平错误"
+    },
+    {
+      "code": "SC188",
+      "description": "CIS白电平错误"
+    },
+    {
+      "code": "SC189",
+      "description": "CIS灰色平衡调整错误"
+    },
+    {
+      "code": "SC195",
+      "description": "机器序列号错误"
+    },
+    {
+      "code": "SC202",
+      "description": "多角镜电机错误1:开启时超时"
+    },
+    {
+      "code": "SC203",
+      "description": "多角镜电机错误2:关闭时超时"
+    },
+    {
+      "code": "SC204",
+      "description": "多角镜电机错误3:XSCRDY信号错误"
+    },
+    {
+      "code": "SC220",
+      "description": "激光同步检测错误"
+    },
+    {
+      "code": "SC221",
+      "description": "激光同步检测器错误：K前端(LD1)"
+    },
+    {
+      "code": "SC230",
+      "description": "FGATE开启错误：K"
+    },
+    {
+      "code": "SC231",
+      "description": "FGATE关闭错误：K"
+    },
+    {
+      "code": "SC240",
+      "description": "LD错误"
+    },
+    {
+      "code": "SC270",
+      "description": "GAVD通信错误"
+    },
+    {
+      "code": "SC300-00",
+      "description": "充电电晕输出错误"
+    },
+    {
+      "code": "SC305-00",
+      "description": "充电电晕丝清洁器错误1"
+    },
+    {
+      "code": "SC306-00",
+      "description": "充电电晕丝清洁器错误2"
+    },
+    {
+      "code": "SC307-00",
+      "description": "充电栅网电路断路"
+    },
+    {
+      "code": "SC320-01",
+      "description": "显影输出异常"
+    },
+    {
+      "code": "SC324-01",
+      "description": "FU111"
+    },
+    {
+      "code": "SC360-01",
+      "description": "TD传感器调整错误：调整输出异常"
+    },
+    {
+      "code": "SC360-11",
+      "description": "TD传感器调整错误：超时错误"
+    },
+    {
+      "code": "SC361-00",
+      "description": "TD传感器输出错误：上限"
+    },
+    {
+      "code": "SC362-00",
+      "description": "TD传感器输出错误：下限"
+    },
+    {
+      "code": "SC370-01",
+      "description": "ID传感器调整错误：LED输出异常"
+    },
+    {
+      "code": "SC370-11",
+      "description": "ID传感器调整错误：超时错误"
+    },
+    {
+      "code": "SC375-00",
+      "description": "ID传感器错误：鼓表面电压错误"
+    },
+    {
+      "code": "SC376-00",
+      "description": "ID传感器错误：图样边缘检测失败"
+    },
+    {
+      "code": "SC377-00",
+      "description": "ID传感器错误：电位表面读取错误"
+    },
+    {
+      "code": "SC378-00",
+      "description": "ID传感器图样错误"
+    },
+    {
+      "code": "SC380-01",
+      "description": "电位传感器校准错误(VM100)"
+    },
+    {
+      "code": "SC380-11",
+      "description": "电位传感器校准错误(VM800)"
+    },
+    {
+      "code": "SC380-21",
+      "description": "电位传感器校准错误(歪斜)"
+    },
+    {
+      "code": "SC380-31",
+      "description": "电位传感器校准错误(截流)"
+    },
+    {
+      "code": "SC380-41",
+      "description": "电位传感器校准错误(VD)"
+    },
+    {
+      "code": "SC380-51",
+      "description": "电位传感器校准(VL)"
+    },
+    {
+      "code": "SC396-01",
+      "description": "主电机错误"
+    },
+    {
+      "code": "SC410-00",
+      "description": "消电灯错误"
+    },
+    {
+      "code": "SC440-01",
+      "description": "转印输出异常(检测到电压泄漏)"
+    },
+    {
+      "code": "SC440-02",
+      "description": "转印输出异常释放检测"
+    },
+    {
+      "code": "SC495-00",
+      "description": "色粉循环单元错误"
+    },
+    {
+      "code": "SC496-00",
+      "description": "色粉收集瓶错误"
+    },
+    {
+      "code": "SC501",
+      "description": "纸盘1提升故障"
+    },
+    {
+      "code": "SC502",
+      "description": "纸盘2提升故障"
+    },
+    {
+      "code": "SC503",
+      "description": "纸盘3提升故障"
+    },
+    {
+      "code": "SC504",
+      "description": "纸盘4提升故障"
+    },
+    {
+      "code": "SC510",
+      "description": "LCT纸盘故障"
+    },
+    {
+      "code": "SC515-00",
+      "description": "双面齐纸机电机错误1"
+    },
+    {
+      "code": "SC516-00",
+      "description": "双面齐纸机电机错误2"
+    },
+    {
+      "code": "SC530-00",
+      "description": "FU113"
+    },
+    {
+      "code": "SC540-01",
+      "description": "定影出纸电机错误"
+    },
+    {
+      "code": "SC540-02",
+      "description": "定影清洁网电机错误1"
+    },
+    {
+      "code": "SC540-03",
+      "description": "定影清洁网电机错误2"
+    },
+    {
+      "code": "SC540-04",
+      "description": "定影清洁网电机错误3"
+    },
+    {
+      "code": "SC541",
+      "description": "定影热敏电阻断路"
+    },
+    {
+      "code": "SC543",
+      "description": "定影灯过热错误1(软件)"
+    },
+    {
+      "code": "SC544",
+      "description": "定影灯过热错误1:硬件"
+    },
+    {
+      "code": "SC545",
+      "description": "定影灯过热错误2:中心灯"
+    },
+    {
+      "code": "SC547-01",
+      "description": "零交叉信号错误1:定影继电器"
+    },
+    {
+      "code": "SC547-02",
+      "description": "零交叉信号错误2:定影继电器"
+    },
+    {
+      "code": "SC547-03",
+      "description": "零交叉信号错误2:电源不稳定"
+    },
+    {
+      "code": "SC551",
+      "description": "定影热敏电阻错误1:两端热敏电阻"
+    },
+    {
+      "code": "SC552-01",
+      "description": "定影重新加载温度错误1:两端热敏电阻"
+    },
+    {
+      "code": "SC552-02",
+      "description": "定影重新加载温度错误2:两端热敏电阻"
+    },
+    {
+      "code": "SC552-03",
+      "description": "定影重新加载温度错误3:两端热敏电阻"
+    },
+    {
+      "code": "SC553",
+      "description": "定影热敏电阻错误4:两端热敏电阻(软件)"
+    },
+    {
+      "code": "SC555",
+      "description": "定影灯错误"
+    },
+    {
+      "code": "SC557",
+      "description": "零交叉信号错误"
+    },
+    {
+      "code": "SC559",
+      "description": "定影卡纸：3次计数"
+    },
+    {
+      "code": "SC569",
+      "description": "定影压力释放电机错误"
+    },
+    {
+      "code": "SC569-00",
+      "description": "FU105"
+    },
+    {
+      "code": "SC590-00",
+      "description": "色粉收集电机错误"
+    },
+    {
+      "code": "SC620-01",
+      "description": "BCU-ADF通讯错误：中断RX异常"
+    },
+    {
+      "code": "SC621-01",
+      "description": "BICU/最终加工器通讯错误：中断错误"
+    },
+    {
+      "code": "SC621-02",
+      "description": "BCU/最终加工器通讯错误：超时错误"
+    },
+    {
+      "code": "SC623",
+      "description": "BCU-PFB通讯错误"
+    },
+    {
+      "code": "SC626-01",
+      "description": "BICU、LCT通讯错误：中断接收错误"
+    },
+    {
+      "code": "SC626-02",
+      "description": "BICU、LCT通讯错误：超时错误"
+    },
+    {
+      "code": "SC632",
+      "description": "计数器设备错误1"
+    },
+    {
+      "code": "SC633",
+      "description": "计数器设备错误2"
+    },
+    {
+      "code": "SC634",
+      "description": "计数器设备错误3"
+    },
+    {
+      "code": "SC635",
+      "description": "计数器设备错误4"
+    },
+    {
+      "code": "SC636",
+      "description": "SD卡错误"
+    },
+    {
+      "code": "SC637",
+      "description": "追踪信息通知错误"
+    },
+    {
+      "code": "SC640",
+      "description": "引擎-控制器通讯错误"
+    },
+    {
+      "code": "SC641",
+      "description": "引擎串行通讯错误"
+    },
+    {
+      "code": "SC650",
+      "description": "@Remote通讯错误(Cumin-M)"
+    },
+    {
+      "code": "SC651",
+      "description": "拨号连接错误"
+    },
+    {
+      "code": "SC652",
+      "description": "远程服务ID2不匹配"
+    },
+    {
+      "code": "SC653",
+      "description": "远程服务ID2不正确"
+    },
+    {
+      "code": "SC670",
+      "description": "引擎启动错误"
+    },
+    {
+      "code": "SC671",
+      "description": "非法引擎板"
+    },
+    {
+      "code": "SC672",
+      "description": "控制器启动错误"
+    },
+    {
+      "code": "SC700-01",
+      "description": "ARDF底板提升电机"
+    },
+    {
+      "code": "SC700-02",
+      "description": "ADF底板电机错误"
+    },
+    {
+      "code": "SC720-01",
+      "description": "下游最终加工器通讯错误"
+    },
+    {
+      "code": "SC720-24",
+      "description": "111"
+    },
+    {
+      "code": "SC720-25",
+      "description": "打孔电机错误(D611/D612)"
+    },
+    {
+      "code": "SC720-30",
+      "description": "111"
+    },
+    {
+      "code": "SC720-41",
+      "description": "116"
+    },
+    {
+      "code": "SC720-42",
+      "description": "113"
+    },
+    {
+      "code": "SC720-43",
+      "description": "112"
+    },
+    {
+      "code": "SC720-44",
+      "description": "编号"
+    },
+    {
+      "code": "SC720-52",
+      "description": "最终加工器折叠板电机错误(D612)"
+    },
+    {
+      "code": "SC720-53",
+      "description": "134"
+    },
+    {
+      "code": "SC720-55",
+      "description": "134"
+    },
+    {
+      "code": "SC720-57",
+      "description": "135"
+    },
+    {
+      "code": "SC720-60",
+      "description": "113"
+    },
+    {
+      "code": "SC720-61",
+      "description": "115"
+    },
+    {
+      "code": "SC720-70",
+      "description": "110"
+    },
+    {
+      "code": "SC720-71",
+      "description": "112"
+    },
+    {
+      "code": "SC720-72",
+      "description": "111"
+    },
+    {
+      "code": "SC720-73",
+      "description": "111"
+    },
+    {
+      "code": "SC720-74",
+      "description": "111"
+    },
+    {
+      "code": "SC720-75",
+      "description": "返回辊电机错误(D611/D612)"
+    },
+    {
+      "code": "SC720-80",
+      "description": "116"
+    },
+    {
+      "code": "SC720-81",
+      "description": "最终加工器 SR4070(D612):      卡纸错误"
+    },
+    {
+      "code": "SC720-87",
+      "description": "116"
+    },
+    {
+      "code": "SC722-01",
+      "description": "下游最终加工器通讯错误"
+    },
+    {
+      "code": "SC722-10",
+      "description": "传送电机错误(D610)"
+    },
+    {
+      "code": "SC722-24",
+      "description": "出纸导板电机(D610)"
+    },
+    {
+      "code": "SC722-25",
+      "description": "打孔电机错误(D610)"
+    },
+    {
+      "code": "SC722-30",
+      "description": "最终加工器齐纸机电机错误(D610)"
+    },
+    {
+      "code": "SC722-33",
+      "description": "最终加工器装订锤电机错误(D610)"
+    },
+    {
+      "code": "SC722-35",
+      "description": "纸堆板电机错误1:前电机(D610)"
+    },
+    {
+      "code": "SC722-36",
+      "description": "纸堆板电机错误2:中心电机(D610)"
+    },
+    {
+      "code": "SC722-37",
+      "description": "纸堆板电机错误3:后电机(D610)"
+    },
+    {
+      "code": "SC722-39",
+      "description": "齐纸机顶栏板电机(D610)"
+    },
+    {
+      "code": "SC722-40",
+      "description": "齐纸机底栏板电机(D610)"
+    },
+    {
+      "code": "SC722-41",
+      "description": "出纸皮带电机错误(D610)"
+    },
+    {
+      "code": "SC722-42",
+      "description": "最终加工器装订器移动电机错误(D610)"
+    },
+    {
+      "code": "SC722-43",
+      "description": "最终加工器页角装订器旋转电机错误(D610)"
+    },
+    {
+      "code": "SC722-44",
+      "description": "最终加工器页角装订器电机错误(D610)"
+    },
+    {
+      "code": "SC722-70",
+      "description": "最终加工器纸盘1(上纸盘提升)电机错误(D610)"
+    },
+    {
+      "code": "SC722-71",
+      "description": "移动电机错误(D610)"
+    },
+    {
+      "code": "SC722-72",
+      "description": "前移动齐纸机电机错误(D610)"
+    },
+    {
+      "code": "SC722-74",
+      "description": "移动齐纸机缩回电机错误(D610)"
+    },
+    {
+      "code": "SC722-75",
+      "description": "返回辊电机错误(D610)"
+    },
+    {
+      "code": "SC722-80",
+      "description": "最终加工器装订针修整贮斗已满(D610)"
+    },
+    {
+      "code": "SC722-81",
+      "description": "最终加工器传送电机错误(D610)"
+    },
+    {
+      "code": "SC722-83",
+      "description": "最终加工器打孔电机错误(D610)"
+    },
+    {
+      "code": "SC724-71",
+      "description": "移动电机错误"
+    },
+    {
+      "code": "SC725-01",
+      "description": "下游最终加工器通讯错误(D615)"
+    },
+    {
+      "code": "SC725-12",
+      "description": "对位辊传送电机错误"
+    },
+    {
+      "code": "SC725-13",
+      "description": "动态辊传送电机错误"
+    },
+    {
+      "code": "SC725-14",
+      "description": "Z形折叠顶部纸盘出纸电机错误"
+    },
+    {
+      "code": "SC725-30",
+      "description": "Z形折叠定位块1电机错误"
+    },
+    {
+      "code": "SC725-31",
+      "description": "第2定位块电机错误"
+    },
+    {
+      "code": "SC725-32",
+      "description": "第3定位块电机错误"
+    },
+    {
+      "code": "SC725-33",
+      "description": "齐纸机栏板电机"
+    },
+    {
+      "code": "SC725-34",
+      "description": "动态辊提升电机错误"
+    },
+    {
+      "code": "SC725-35",
+      "description": "对位辊释放电机错误"
+    },
+    {
+      "code": "SC725-36",
+      "description": "FM2直送至活接门电机"
+    },
+    {
+      "code": "SC725-37",
+      "description": "FM6爪电机"
+    },
+    {
+      "code": "SC725-38",
+      "description": "折叠板电机错误"
+    },
+    {
+      "code": "SC725-41",
+      "description": "折痕电机错误"
+    },
+    {
+      "code": "SC725-71",
+      "description": "水平传送电机错误"
+    },
+    {
+      "code": "SC725-72",
+      "description": "水平出纸电机错误"
+    },
+    {
+      "code": "SC725-73",
+      "description": "顶部纸盘出纸电机"
+    },
+    {
+      "code": "SC725-74",
+      "description": "进纸活接门电机"
+    },
+    {
+      "code": "SC740-10",
+      "description": "盖板插纸机纸盘底板电机错误"
+    },
+    {
+      "code": "SC816",
+      "description": "节能I/O子系统错误"
+    },
+    {
+      "code": "SC817",
+      "description": "监控器错误"
+    },
+    {
+      "code": "SC819",
+      "description": "致命内核错误"
+    },
+    {
+      "code": "SC820",
+      "description": "0008"
+    },
+    {
+      "code": "SC821",
+      "description": "自诊断错误：ASIC"
+    },
+    {
+      "code": "SC822",
+      "description": "自诊断错误：HDD"
+    },
+    {
+      "code": "SC823",
+      "description": "自诊断错误：NIC"
+    },
+    {
+      "code": "SC824",
+      "description": "自诊断错误：NVRAM(驻留)"
+    },
+    {
+      "code": "SC829",
+      "description": "自诊断错误：可选RAM"
+    },
+    {
+      "code": "SC833",
+      "description": "自诊断错误：引擎I/F ASIC"
+    },
+    {
+      "code": "SC834",
+      "description": "自诊断错误：可选内存"
+    },
+    {
+      "code": "SC838",
+      "description": "自诊断错误：时钟发生器"
+    },
+    {
+      "code": "SC840",
+      "description": "EEPROM访问错误"
+    },
+    {
+      "code": "SC841",
+      "description": "EEPROM读取错误"
+    },
+    {
+      "code": "SC842",
+      "description": "Nand-Flash更新验证错误"
+    },
+    {
+      "code": "SC850",
+      "description": "网络I/F错误"
+    },
+    {
+      "code": "SC851",
+      "description": "IEEE 1394 I/F错误"
+    },
+    {
+      "code": "SC853",
+      "description": "蓝牙设备连接错误"
+    },
+    {
+      "code": "SC854",
+      "description": "已拆除蓝牙设备"
+    },
+    {
+      "code": "SC855",
+      "description": "硬件问题：无线局域网板"
+    },
+    {
+      "code": "SC857",
+      "description": "USB I/F错误1"
+    },
+    {
+      "code": "SC858",
+      "description": "数据加密转换错误"
+    },
+    {
+      "code": "SC859",
+      "description": "数据加密转换错误"
+    },
+    {
+      "code": "SC860",
+      "description": "电源开启时的HDD启动错误"
+    },
+    {
+      "code": "SC861",
+      "description": "H D D 错 误 2 : H D D 启 动"
+    },
+    {
+      "code": "SC862",
+      "description": "坏扇区溢出"
+    },
+    {
+      "code": "SC863",
+      "description": "HDD数据读取失败"
+    },
+    {
+      "code": "SC864",
+      "description": "H D D 数 据 C R C 错 误"
+    },
+    {
+      "code": "SC865",
+      "description": "HDD存取错误"
+    },
+    {
+      "code": "SC867",
+      "description": "无 S D 卡"
+    },
+    {
+      "code": "SC868",
+      "description": "SD卡存取错误"
+    },
+    {
+      "code": "SC870",
+      "description": "地址簿错误"
+    },
+    {
+      "code": "SC872",
+      "description": "HDD邮件接收数据错误"
+    },
+    {
+      "code": "SC873",
+      "description": "HDD邮件发送错误"
+    },
+    {
+      "code": "SC874",
+      "description": "删除全部错误1(DOS)"
+    },
+    {
+      "code": "SC875",
+      "description": "删除全部错误2:数据区域"
+    },
+    {
+      "code": "SC876",
+      "description": "日志数据错误"
+    },
+    {
+      "code": "SC877",
+      "description": "数据覆盖安全错误"
+    },
+    {
+      "code": "SC878",
+      "description": "芯片错误"
+    },
+    {
+      "code": "SC880",
+      "description": "文件格式转换器错误(MLB)"
+    },
+    {
+      "code": "SC881",
+      "description": "验证区域错误"
+    },
+    {
+      "code": "SC899",
+      "description": "软件性能错误"
+    },
+    {
+      "code": "SC900",
+      "description": "电气计数器错误"
+    },
+    {
+      "code": "SC901",
+      "description": "机械总计数器错误"
+    },
+    {
+      "code": "SC910",
+      "description": "外部控制器错误1"
+    },
+    {
+      "code": "SC911",
+      "description": "外部控制器错误2"
+    },
+    {
+      "code": "SC912",
+      "description": "外部控制器错误3"
+    },
+    {
+      "code": "SC913",
+      "description": "外部控制器错误4"
+    },
+    {
+      "code": "SC914",
+      "description": "外部控制器错误5"
+    },
+    {
+      "code": "SC915",
+      "description": "外部控制器错误6"
+    },
+    {
+      "code": "SC919",
+      "description": "外部控制器错误6"
+    },
+    {
+      "code": "SC920",
+      "description": "打印机应用程序错误"
+    },
+    {
+      "code": "SC921",
+      "description": "打印机字体错误"
+    },
+    {
+      "code": "SC925",
+      "description": "网络文件功能错误"
+    },
+    {
+      "code": "SC953",
+      "description": "扫描仪图像设置错误"
+    },
+    {
+      "code": "SC954",
+      "description": "打印机图像设置错误"
+    },
+    {
+      "code": "SC955",
+      "description": "内存设置错误"
+    },
+    {
+      "code": "SC964",
+      "description": "打印机就绪错误"
+    },
+    {
+      "code": "SC965",
+      "description": "打印启动错误"
+    },
+    {
+      "code": "SC984",
+      "description": "打印图像数据传输错误"
+    },
+    {
+      "code": "SC985",
+      "description": "扫描图像数据传输错误"
+    },
+    {
+      "code": "SC986",
+      "description": "软件错误1"
+    },
+    {
+      "code": "SC990",
+      "description": "软件性能错误"
+    },
+    {
+      "code": "SC991",
+      "description": "系统错误4"
+    },
+    {
+      "code": "SC992",
+      "description": "未定义的错误(无SC代码)"
+    },
+    {
+      "code": "SC993",
+      "description": "网络错误"
+    },
+    {
+      "code": "SC994",
+      "description": "超过操作面板管理记录"
+    },
+    {
+      "code": "SC995",
+      "description": "CPM设置错误"
+    },
+    {
+      "code": "SC997",
+      "description": "应用程序功能选择错误"
+    },
+    {
+      "code": "SC998",
+      "description": "应用程序启动错误"
+    }
+  ],
+  "spCodes": [
+    {
+      "code": "SP0001",
+      "description": "TLB转换(保存)异常错误"
+    },
+    {
+      "code": "SP0002",
+      "description": "TLB丢失(加载)异常错误"
+    },
+    {
+      "code": "SP0003",
+      "description": "TLB丢失(保存)异常错误"
+    },
+    {
+      "code": "SP0004",
+      "description": "读取地址异常错误"
+    },
+    {
+      "code": "SP0005",
+      "description": "写入地址异常错误"
+    },
+    {
+      "code": "SP0006",
+      "description": "命令总线异常错误"
+    },
+    {
+      "code": "SP0007",
+      "description": "数据总线异常错误"
+    },
+    {
+      "code": "SP0008",
+      "description": "自诊断错误：CPU:系统呼叫异常"
+    },
+    {
+      "code": "SP0009",
+      "description": "中断异常错误"
+    },
+    {
+      "code": "SP0010",
+      "description": "分配0错误"
+    },
+    {
+      "code": "SP0011",
+      "description": "分配1错误"
+    },
+    {
+      "code": "SP0012",
+      "description": "分配2错误"
+    },
+    {
+      "code": "SP0013",
+      "description": "分配3错误"
+    },
+    {
+      "code": "SP0014",
+      "description": "分配4错误"
+    },
+    {
+      "code": "SP0015",
+      "description": "分配5错误"
+    },
+    {
+      "code": "SP0101",
+      "description": "Boost trap代码(CODE)错误"
+    },
+    {
+      "code": "SP0104",
+      "description": "ROM FS错误"
+    },
+    {
+      "code": "SP0201",
+      "description": "驻留内存验证错误"
+    },
+    {
+      "code": "SP0301",
+      "description": "可选内存0验证错误"
+    },
+    {
+      "code": "SP0302",
+      "description": "可选内存0配置信息错误"
+    },
+    {
+      "code": "SP0601",
+      "description": "读取地址异常错误"
+    },
+    {
+      "code": "SP0602",
+      "description": "写入地址异常错误"
+    },
+    {
+      "code": "SP0605",
+      "description": "系统呼叫异常错误"
+    },
+    {
+      "code": "SP0606",
+      "description": "中断点异常错误"
+    },
+    {
+      "code": "SP0607",
+      "description": "非法命令异常错误"
+    },
+    {
+      "code": "SP0610",
+      "description": "CPU定时器2分配设置错误"
+    },
+    {
+      "code": "SP0612",
+      "description": "自诊断错误：CPU:ASIC中断错误"
+    },
+    {
+      "code": "SP0702",
+      "description": "命令缓存错误"
+    },
+    {
+      "code": "SP0709",
+      "description": "数据缓存错误"
+    },
+    {
+      "code": "SP0801",
+      "description": "TLB虚拟地址错误"
+    },
+    {
+      "code": "SP0804",
+      "description": "TLB全局错误"
+    },
+    {
+      "code": "SP0807",
+      "description": "UTLB丢失错误"
+    },
+    {
+      "code": "SP0808",
+      "description": "TLB读取丢失错误"
+    },
+    {
+      "code": "SP0809",
+      "description": "TLB写入丢失错误"
+    },
+    {
+      "code": "SP1001",
+      "description": "前端对位"
+    },
+    {
+      "code": "SP1002",
+      "description": "横向对位"
+    },
+    {
+      "code": "SP1003",
+      "description": "对位拱起量调整"
+    },
+    {
+      "code": "SP1004",
+      "description": "打印一览表"
+    },
+    {
+      "code": "SP1005",
+      "description": "显示版本"
+    },
+    {
+      "code": "SP1006",
+      "description": "样本/锁定打印"
+    },
+    {
+      "code": "SP1007",
+      "description": "手送纸张尺寸显示"
+    },
+    {
+      "code": "SP1008",
+      "description": "双面栏板调整"
+    },
+    {
+      "code": "SP1009",
+      "description": "禁用远程扫描"
+    },
+    {
+      "code": "SP1010",
+      "description": "不显示Clear Light PDF"
+    },
+    {
+      "code": "SP1011",
+      "description": "原稿计数显示"
+    },
+    {
+      "code": "SP1012",
+      "description": "用户信息发布"
+    },
+    {
+      "code": "SP1013",
+      "description": "扫描到媒体设备设置"
+    },
+    {
+      "code": "SP1015",
+      "description": "添加日期/时间到文件名"
+    },
+    {
+      "code": "SP1102",
+      "description": "验证错误"
+    },
+    {
+      "code": "SP1103",
+      "description": "定影空转"
+    },
+    {
+      "code": "SP1105",
+      "description": "定影温度调整"
+    },
+    {
+      "code": "SP1106",
+      "description": "定影温度显示"
+    },
+    {
+      "code": "SP1107",
+      "description": "启动定影温度时间调整"
+    },
+    {
+      "code": "SP1109",
+      "description": "测量轧带宽度"
+    },
+    {
+      "code": "SP1110",
+      "description": "媒体打印设备设置"
+    },
+    {
+      "code": "SP1111",
+      "description": "全部作业删除模式"
+    },
+    {
+      "code": "SP1112",
+      "description": "自动过程控制"
+    },
+    {
+      "code": "SP1159",
+      "description": "定影卡纸：SC设置"
+    },
+    {
+      "code": "SP1200",
+      "description": "dpi(打印),600 dpi(扫描)"
+    },
+    {
+      "code": "SP1401",
+      "description": "NVRAM验证错误"
+    },
+    {
+      "code": "SP1501",
+      "description": "时钟错误"
+    },
+    {
+      "code": "SP1601",
+      "description": "字 体 R O M 0 错 误"
+    },
+    {
+      "code": "SP1602",
+      "description": "字体ROM 1错误"
+    },
+    {
+      "code": "SP1802",
+      "description": "C P M 设 置 D F U"
+    },
+    {
+      "code": "SP1901",
+      "description": "特殊纸的CPM下降设置"
+    },
+    {
+      "code": "SP1902",
+      "description": "定影清洁网电机控制"
+    },
+    {
+      "code": "SP1903",
+      "description": "清洁网作业用完"
+    },
+    {
+      "code": "SP1904",
+      "description": "手送纸盘纸张尺寸修正"
+    },
+    {
+      "code": "SP1905",
+      "description": "厚纸-手送纸盘"
+    },
+    {
+      "code": "SP1906",
+      "description": "温度/湿度传感器"
+    },
+    {
+      "code": "SP1907",
+      "description": "预定影空转开启/关闭"
+    },
+    {
+      "code": "SP1908",
+      "description": "预定影空转"
+    },
+    {
+      "code": "SP1909",
+      "description": "低速模式"
+    },
+    {
+      "code": "SP1910",
+      "description": "电容器状态：仅限日本"
+    },
+    {
+      "code": "SP1911",
+      "description": "电容器放电停止电压仅限日本"
+    },
+    {
+      "code": "SP1912",
+      "description": "电容器磨损检测仅限日本"
+    },
+    {
+      "code": "SP1920",
+      "description": "电容器充电设置：仅限日本"
+    },
+    {
+      "code": "SP1921",
+      "description": "未使用"
+    },
+    {
+      "code": "SP1922",
+      "description": "未使用"
+    },
+    {
+      "code": "SP1923",
+      "description": "HV定影温度控制"
+    },
+    {
+      "code": "SP1924",
+      "description": "10 Sec.恢复温度：仅限日本"
+    },
+    {
+      "code": "SP1925",
+      "description": "空转设置：仅限日本"
+    },
+    {
+      "code": "SP1926",
+      "description": "电容器放电：小尺寸：仅限日本"
+    },
+    {
+      "code": "SP1927",
+      "description": "电容器放电设置：仅限日本"
+    },
+    {
+      "code": "SP1928",
+      "description": "送纸期间加热器关闭：加热器关闭时间"
+    },
+    {
+      "code": "SP1929",
+      "description": "电容器关闭：送纸1:开启0:关闭仅限日本"
+    },
+    {
+      "code": "SP1930",
+      "description": "清洁网运行"
+    },
+    {
+      "code": "SP1931",
+      "description": "标准纸设置控制"
+    },
+    {
+      "code": "SP2001",
+      "description": "充电辊偏压调整"
+    },
+    {
+      "code": "SP2021",
+      "description": "压缩级别(灰标)"
+    },
+    {
+      "code": "SP2024",
+      "description": "ClearLight PDF压缩率"
+    },
+    {
+      "code": "SP2025",
+      "description": "ClearLight PDF JPEG2000压缩级别"
+    },
+    {
+      "code": "SP2101",
+      "description": "打印删除页边距"
+    },
+    {
+      "code": "SP2104",
+      "description": "小间距条带缩减"
+    },
+    {
+      "code": "SP2111",
+      "description": "FCI黑边修正检测"
+    },
+    {
+      "code": "SP2114",
+      "description": "二进制边缘处理"
+    },
+    {
+      "code": "SP2115",
+      "description": "主扫描光束间距调整"
+    },
+    {
+      "code": "SP2201",
+      "description": "显影偏压"
+    },
+    {
+      "code": "SP2207",
+      "description": "强制供粉"
+    },
+    {
+      "code": "SP2208",
+      "description": "供粉模式"
+    },
+    {
+      "code": "SP2209",
+      "description": "供粉率"
+    },
+    {
+      "code": "SP2210",
+      "description": "ID传感器图样间隔"
+    },
+    {
+      "code": "SP2220",
+      "description": "Vref手动设置"
+    },
+    {
+      "code": "SP2223",
+      "description": "Vt显示"
+    },
+    {
+      "code": "SP2301",
+      "description": "转印电流调整"
+    },
+    {
+      "code": "SP2506",
+      "description": "连续运行时间清洁设置"
+    },
+    {
+      "code": "SP2507",
+      "description": "ID传感器图样双面"
+    },
+    {
+      "code": "SP2602",
+      "description": "PTL设置(第1/第2复印面)"
+    },
+    {
+      "code": "SP2701",
+      "description": "验证错误"
+    },
+    {
+      "code": "SP2801",
+      "description": "TD传感器初始设置"
+    },
+    {
+      "code": "SP2803",
+      "description": "充电清洁器开始时间"
+    },
+    {
+      "code": "SP2804",
+      "description": "充电清洁器"
+    },
+    {
+      "code": "SP2901",
+      "description": "湿度控制"
+    },
+    {
+      "code": "SP2902",
+      "description": "测试图样打印"
+    },
+    {
+      "code": "SP2906",
+      "description": "TD传感器控制电压和检查"
+    },
+    {
+      "code": "SP2909",
+      "description": "主扫描放大"
+    },
+    {
+      "code": "SP2910",
+      "description": "写入副扫描放大"
+    },
+    {
+      "code": "SP2912",
+      "description": "鼓反转-反转间隔"
+    },
+    {
+      "code": "SP2913",
+      "description": "温度和湿度显示"
+    },
+    {
+      "code": "SP2920",
+      "description": "LD关闭检查"
+    },
+    {
+      "code": "SP2930",
+      "description": "转印空转清洁"
+    },
+    {
+      "code": "SP2931",
+      "description": "转印电流开启/关闭时限：LCT"
+    },
+    {
+      "code": "SP2932",
+      "description": "转印电流开启/关闭时限：纸盘1"
+    },
+    {
+      "code": "SP2933",
+      "description": "转印电流开启/关闭时限：纸盘2"
+    },
+    {
+      "code": "SP2934",
+      "description": "转印电流开启/关闭时限：纸盘3"
+    },
+    {
+      "code": "SP2935",
+      "description": "转印电流开启/关闭时限：纸盘4仅限日本"
+    },
+    {
+      "code": "SP2936",
+      "description": "转印电流开启/关闭时限：手送纸盘"
+    },
+    {
+      "code": "SP2940",
+      "description": "光面模式"
+    },
+    {
+      "code": "SP2950",
+      "description": "Vh图样创建设置DFU"
+    },
+    {
+      "code": "SP2960",
+      "description": "处理间隔DFU"
+    },
+    {
+      "code": "SP2961",
+      "description": "显影剂调整模式DFU"
+    },
+    {
+      "code": "SP2962",
+      "description": "鼓状况的自动调整"
+    },
+    {
+      "code": "SP2963",
+      "description": "安装模式"
+    },
+    {
+      "code": "SP2966",
+      "description": "鼓状况：定期调整"
+    },
+    {
+      "code": "SP2967",
+      "description": "显影剂浓度调整模式"
+    },
+    {
+      "code": "SP2968",
+      "description": "色粉退出模式"
+    },
+    {
+      "code": "SP2969",
+      "description": "色粉瓶转数计数"
+    },
+    {
+      "code": "SP2970",
+      "description": "转印带电阻：显示DFU"
+    },
+    {
+      "code": "SP2971",
+      "description": "转印间隔输出DFU"
+    },
+    {
+      "code": "SP2972",
+      "description": "色粉瓶冷却风扇驱动控制"
+    },
+    {
+      "code": "SP2973",
+      "description": "显影电机速度设置"
+    },
+    {
+      "code": "SP2974",
+      "description": "PCU冷却风扇驱动控制"
+    },
+    {
+      "code": "SP2975",
+      "description": "主进气风扇驱动控制"
+    },
+    {
+      "code": "SP2976",
+      "description": "显影风扇驱动控制"
+    },
+    {
+      "code": "SP2977",
+      "description": "主排气风扇驱动设置"
+    },
+    {
+      "code": "SP2980",
+      "description": "纸张间隔转印电流开启时限"
+    },
+    {
+      "code": "SP2986",
+      "description": "更新模式"
+    },
+    {
+      "code": "SP3001",
+      "description": "ID传感器初始设置"
+    },
+    {
+      "code": "SP3004",
+      "description": "自诊断命令错误"
+    },
+    {
+      "code": "SP3103",
+      "description": "ID传感器输出显示"
+    },
+    {
+      "code": "SP3260",
+      "description": "型打孔单元 (B702)"
+    },
+    {
+      "code": "SP3901",
+      "description": "自动过程控制开启/关闭设置"
+    },
+    {
+      "code": "SP3902",
+      "description": "鼓状况显示"
+    },
+    {
+      "code": "SP3903",
+      "description": "鼓旋转时间延长模式"
+    },
+    {
+      "code": "SP3904",
+      "description": "短时间预热模式"
+    },
+    {
+      "code": "SP3905",
+      "description": "排除时间(90 cpm):间隔设置"
+    },
+    {
+      "code": "SP4002",
+      "description": "单精度计算错误"
+    },
+    {
+      "code": "SP4003",
+      "description": "双精度计算错误"
+    },
+    {
+      "code": "SP4004",
+      "description": "异常错误"
+    },
+    {
+      "code": "SP4005",
+      "description": "异常掩码错误"
+    },
+    {
+      "code": "SP4008",
+      "description": "副扫描放大调整"
+    },
+    {
+      "code": "SP4010",
+      "description": "副扫描对位调整"
+    },
+    {
+      "code": "SP4011",
+      "description": "主扫描对位调整"
+    },
+    {
+      "code": "SP4012",
+      "description": "设置比例掩码"
+    },
+    {
+      "code": "SP4013",
+      "description": "扫描仪自由运行"
+    },
+    {
+      "code": "SP4014",
+      "description": "扫描"
+    },
+    {
+      "code": "SP4020",
+      "description": "DF灰尘检查"
+    },
+    {
+      "code": "SP4301",
+      "description": "运行检查APS传感器"
+    },
+    {
+      "code": "SP4303",
+      "description": "APS的最小尺寸"
+    },
+    {
+      "code": "SP4305",
+      "description": "8K/16K检测"
+    },
+    {
+      "code": "SP4400",
+      "description": "原稿边缘掩码设置"
+    },
+    {
+      "code": "SP4417",
+      "description": "IPU测试图样设置"
+    },
+    {
+      "code": "SP4429",
+      "description": "选择数据复制安全"
+    },
+    {
+      "code": "SP4450",
+      "description": "扫描图像通过选择"
+    },
+    {
+      "code": "SP4460",
+      "description": "数 字 A E"
+    },
+    {
+      "code": "SP4550",
+      "description": "扫描：文字/图纸"
+    },
+    {
+      "code": "SP4551",
+      "description": "扫描：文字"
+    },
+    {
+      "code": "SP4552",
+      "description": "扫描：测试脱落颜色"
+    },
+    {
+      "code": "SP4553",
+      "description": "扫描：文字/照片"
+    },
+    {
+      "code": "SP4554",
+      "description": "扫描：照片"
+    },
+    {
+      "code": "SP4565",
+      "description": "扫描：灰标"
+    },
+    {
+      "code": "SP4570",
+      "description": "扫描：彩色文字/照片"
+    },
+    {
+      "code": "SP4571",
+      "description": "扫描：彩色光面照片"
+    },
+    {
+      "code": "SP4572",
+      "description": "扫描：自动彩色"
+    },
+    {
+      "code": "SP4580",
+      "description": "传真应用：文字/图表"
+    },
+    {
+      "code": "SP4581",
+      "description": "传真应用：文字"
+    },
+    {
+      "code": "SP4582",
+      "description": "传真应用：文字/照片"
+    },
+    {
+      "code": "SP4583",
+      "description": "传真应用：照片"
+    },
+    {
+      "code": "SP4584",
+      "description": "传真应用：原稿1"
+    },
+    {
+      "code": "SP4585",
+      "description": "传真应用：原稿2"
+    },
+    {
+      "code": "SP4602",
+      "description": "扫描仪存储访问"
+    },
+    {
+      "code": "SP4607",
+      "description": "灰色平衡调整(两面)"
+    },
+    {
+      "code": "SP4608",
+      "description": "GB调整检测级别DFU"
+    },
+    {
+      "code": "SP4609",
+      "description": "灰色平衡调整值：R DFU"
+    },
+    {
+      "code": "SP4610",
+      "description": "灰色平衡调整值：G DFU"
+    },
+    {
+      "code": "SP4611",
+      "description": "灰色平衡调整值：B DFU"
+    },
+    {
+      "code": "SP4623",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4624",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4625",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4628",
+      "description": "模拟增益范围调整值(R)DFU"
+    },
+    {
+      "code": "SP4629",
+      "description": "模拟增益范围调整值(G)DFU"
+    },
+    {
+      "code": "SP4630",
+      "description": "模拟增盆范围调整值(B)DFU"
+    },
+    {
+      "code": "SP4631",
+      "description": "模拟增盆调整值(R)DFU"
+    },
+    {
+      "code": "SP4632",
+      "description": "数字增益调整值(G)DFU"
+    },
+    {
+      "code": "SP4633",
+      "description": "数字增益调整值(B)DFU"
+    },
+    {
+      "code": "SP4635",
+      "description": "SSCG噪声取消"
+    },
+    {
+      "code": "SP4636",
+      "description": "SSCG修正"
+    },
+    {
+      "code": "SP4637",
+      "description": "SSCG修正调整值"
+    },
+    {
+      "code": "SP4638",
+      "description": "SSCG修正调整值"
+    },
+    {
+      "code": "SP4639",
+      "description": "SSCG修正调整值"
+    },
+    {
+      "code": "SP4640",
+      "description": "SSCG修正调整值"
+    },
+    {
+      "code": "SP4646",
+      "description": "扫描调整错误DFU"
+    },
+    {
+      "code": "SP4647",
+      "description": "错误标记：扫描仪硬件DFU"
+    },
+    {
+      "code": "SP4673",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4674",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4675",
+      "description": "黑电平调整值DFU"
+    },
+    {
+      "code": "SP4677",
+      "description": "模拟增盆范围调整值DFU"
+    },
+    {
+      "code": "SP4678",
+      "description": "模拟增益范围调整值DFU"
+    },
+    {
+      "code": "SP4679",
+      "description": "模拟增盆范围调整值DFU"
+    },
+    {
+      "code": "SP4680",
+      "description": "数字增益范围调整值DFU"
+    },
+    {
+      "code": "SP4681",
+      "description": "数字增益范围调整值DFU"
+    },
+    {
+      "code": "SP4682",
+      "description": "数字增益范围调整值DFU"
+    },
+    {
+      "code": "SP4690",
+      "description": "白电平峰值数据DFU"
+    },
+    {
+      "code": "SP4691",
+      "description": "白电平峰值数据DFU"
+    },
+    {
+      "code": "SP4692",
+      "description": "白电平峰值数据DFU"
+    },
+    {
+      "code": "SP4693",
+      "description": "黑电平数据DFU"
+    },
+    {
+      "code": "SP4694",
+      "description": "黑电平数据DFU"
+    },
+    {
+      "code": "SP4695",
+      "description": "黑电平数据DFU"
+    },
+    {
+      "code": "SP4700",
+      "description": "CIS ID显示"
+    },
+    {
+      "code": "SP4709",
+      "description": "CIS GB图表级别R"
+    },
+    {
+      "code": "SP4710",
+      "description": "CIS GB图表级别G"
+    },
+    {
+      "code": "SP4711",
+      "description": "CIS GB图表级别B"
+    },
+    {
+      "code": "SP4712",
+      "description": "CIS GB调整值R DFU"
+    },
+    {
+      "code": "SP4713",
+      "description": "CIS GB调整值G DFU"
+    },
+    {
+      "code": "SP4714",
+      "description": "CIS GB调整值B DFU"
+    },
+    {
+      "code": "SP4745",
+      "description": "CIS图像级别错误标记"
+    },
+    {
+      "code": "SP4746",
+      "description": "CIS GB调整错误标记"
+    },
+    {
+      "code": "SP4747",
+      "description": "CIS硬件错误标记"
+    },
+    {
+      "code": "SP4748",
+      "description": "CIS主扫描白电平：平均值R"
+    },
+    {
+      "code": "SP4749",
+      "description": "CIS主扫描白电平：平均值G"
+    },
+    {
+      "code": "SP4750",
+      "description": "CIS主扫描白电平：平均值B"
+    },
+    {
+      "code": "SP4760",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4761",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4762",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4763",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4764",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4765",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4766",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4767",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4768",
+      "description": "CIS像素插值DFU"
+    },
+    {
+      "code": "SP4787",
+      "description": "CIS白电平峰值数据R DFU"
+    },
+    {
+      "code": "SP4788",
+      "description": "CIS白电平峰值数据G DFU"
+    },
+    {
+      "code": "SP4789",
+      "description": "CIS白电平峰值数据B DFU"
+    },
+    {
+      "code": "SP4790",
+      "description": "CIS白电平峰值数据R DFU"
+    },
+    {
+      "code": "SP4791",
+      "description": "CIS白电平峰值数据G DFU"
+    },
+    {
+      "code": "SP4792",
+      "description": "CIS白电平峰值数据G DFU"
+    },
+    {
+      "code": "SP4793",
+      "description": "黑电平数据R"
+    },
+    {
+      "code": "SP4794",
+      "description": "黑电平数据G"
+    },
+    {
+      "code": "SP4795",
+      "description": "黑电平数据B"
+    },
+    {
+      "code": "SP4796",
+      "description": "低浓度彩色DFU"
+    },
+    {
+      "code": "SP4797",
+      "description": "数 字 A E : 反 面 D F U"
+    },
+    {
+      "code": "SP4798",
+      "description": "CIS LED负载DFU"
+    },
+    {
+      "code": "SP4799",
+      "description": "CIS测试图样"
+    },
+    {
+      "code": "SP4800",
+      "description": "DF浓度调整值DFU"
+    },
+    {
+      "code": "SP4802",
+      "description": "扫描仪自由运行"
+    },
+    {
+      "code": "SP4804",
+      "description": "原位操作"
+    },
+    {
+      "code": "SP4806",
+      "description": "FL修正开启/关闭"
+    },
+    {
+      "code": "SP4903",
+      "description": "过滤器设置"
+    },
+    {
+      "code": "SP4905",
+      "description": "选择灰度等级DFU"
+    },
+    {
+      "code": "SP4907",
+      "description": "SBU测试图样"
+    },
+    {
+      "code": "SP4918",
+      "description": "手动伽马调整DFU"
+    },
+    {
+      "code": "SP4991",
+      "description": "IPU图像通过选择DFU"
+    },
+    {
+      "code": "SP4993",
+      "description": "加亮修正DFU"
+    },
+    {
+      "code": "SP4994",
+      "description": "文字/照片检测级别调整"
+    },
+    {
+      "code": "SP4996",
+      "description": "白纸检测级别"
+    },
+    {
+      "code": "SP5024",
+      "description": "毫米/英寸显示选择"
+    },
+    {
+      "code": "SP5037",
+      "description": "状态灯模式未使用"
+    },
+    {
+      "code": "SP5045",
+      "description": "计数器"
+    },
+    {
+      "code": "SP5055",
+      "description": "显示IP地址"
+    },
+    {
+      "code": "SP5071",
+      "description": "设置手送纸张尺寸显示"
+    },
+    {
+      "code": "SP5074",
+      "description": "用户的首页屏幕DFU"
+    },
+    {
+      "code": "SP5075",
+      "description": "USB键盘"
+    },
+    {
+      "code": "SP5101",
+      "description": "预热级别设置未使用"
+    },
+    {
+      "code": "SP5112",
+      "description": "非标准纸张选择"
+    },
+    {
+      "code": "SP5113",
+      "description": "可选计数器类型"
+    },
+    {
+      "code": "SP5114",
+      "description": "可选计数器I/F"
+    },
+    {
+      "code": "SP5118",
+      "description": "禁用复印"
+    },
+    {
+      "code": "SP5120",
+      "description": "移除模式清除可选计数器"
+    },
+    {
+      "code": "SP5121",
+      "description": "计数器累计时限SSP"
+    },
+    {
+      "code": "SP5126",
+      "description": "设置F尺寸文件"
+    },
+    {
+      "code": "SP5127",
+      "description": "APS关闭模式"
+    },
+    {
+      "code": "SP5129",
+      "description": "F纸张尺寸选择"
+    },
+    {
+      "code": "SP5131",
+      "description": "纸张尺寸类型选择"
+    },
+    {
+      "code": "SP5150",
+      "description": "手送长度设置"
+    },
+    {
+      "code": "SP5162",
+      "description": "应用程序切换方法"
+    },
+    {
+      "code": "SP5165",
+      "description": "Z形折叠位置"
+    },
+    {
+      "code": "SP5167",
+      "description": "可选计数器关闭时的传真打印模式"
+    },
+    {
+      "code": "SP5169",
+      "description": "客户工程师的登录"
+    },
+    {
+      "code": "SP5179",
+      "description": "手送纸盘纸张尺寸错误显示"
+    },
+    {
+      "code": "SP5188",
+      "description": "复印NV版本"
+    },
+    {
+      "code": "SP5191",
+      "description": "模式设置"
+    },
+    {
+      "code": "SP5195",
+      "description": "无限开关"
+    },
+    {
+      "code": "SP5196",
+      "description": "90度旋转(复印)"
+    },
+    {
+      "code": "SP5199",
+      "description": "装订结束后的纸张设置"
+    },
+    {
+      "code": "SP5212",
+      "description": "页码"
+    },
+    {
+      "code": "SP5227",
+      "description": "页编码(Bates印记)"
+    },
+    {
+      "code": "SP5302",
+      "description": "设置时间DFU"
+    },
+    {
+      "code": "SP5307",
+      "description": "夏令时"
+    },
+    {
+      "code": "SP5401",
+      "description": "访问控制DFU"
+    },
+    {
+      "code": "SP5402",
+      "description": "访问控制未使用"
+    },
+    {
+      "code": "SP5404",
+      "description": "用户代码计数清除"
+    },
+    {
+      "code": "SP5411",
+      "description": "LDAP认证"
+    },
+    {
+      "code": "SP5412",
+      "description": "Krb认证"
+    },
+    {
+      "code": "SP5413",
+      "description": "锁定设置"
+    },
+    {
+      "code": "SP5414",
+      "description": "访问缓解"
+    },
+    {
+      "code": "SP5415",
+      "description": "密码攻击"
+    },
+    {
+      "code": "SP5416",
+      "description": "访问信息"
+    },
+    {
+      "code": "SP5417",
+      "description": "访问攻击"
+    },
+    {
+      "code": "SP5420",
+      "description": "用户验证"
+    },
+    {
+      "code": "SP5430",
+      "description": "验证对话信息更改"
+    },
+    {
+      "code": "SP5431",
+      "description": "预设外部验证用户"
+    },
+    {
+      "code": "SP5481",
+      "description": "验证错误代码"
+    },
+    {
+      "code": "SP5490",
+      "description": "MF钥匙卡"
+    },
+    {
+      "code": "SP5491",
+      "description": "可选计数器未使用"
+    },
+    {
+      "code": "SP5501",
+      "description": "PM报警"
+    },
+    {
+      "code": "SP5504",
+      "description": "卡纸报警仅限日本"
+    },
+    {
+      "code": "SP5505",
+      "description": "错误报警"
+    },
+    {
+      "code": "SP5507",
+      "description": "供应报警"
+    },
+    {
+      "code": "SP5508",
+      "description": "CC呼叫仅限日本"
+    },
+    {
+      "code": "SP5513",
+      "description": "部件报警位计数仅限日本"
+    },
+    {
+      "code": "SP5515",
+      "description": "SC/报警设置"
+    },
+    {
+      "code": "SP5730",
+      "description": "扩展功能设置未使用"
+    },
+    {
+      "code": "SP5734",
+      "description": "PDF设置"
+    },
+    {
+      "code": "SP5741",
+      "description": "节点验证超时"
+    },
+    {
+      "code": "SP5743",
+      "description": "网络安全等级"
+    },
+    {
+      "code": "SP5745",
+      "description": "Eco计数时间DFU"
+    },
+    {
+      "code": "SP5749",
+      "description": "导入/导出"
+    },
+    {
+      "code": "SP5792",
+      "description": "MCS调试开关DFU"
+    },
+    {
+      "code": "SP5793",
+      "description": "ECS调试开关DFU"
+    },
+    {
+      "code": "SP5795",
+      "description": "S R M 调 试 开 关DFU"
+    },
+    {
+      "code": "SP5801",
+      "description": "内存清除"
+    },
+    {
+      "code": "SP5802",
+      "description": "打印机自由运行"
+    },
+    {
+      "code": "SP5803",
+      "description": "输入检查tp.365"
+    },
+    {
+      "code": "SP5804",
+      "description": "输出检查咖p.373"
+    },
+    {
+      "code": "SP5807",
+      "description": "地区选择"
+    },
+    {
+      "code": "SP5810",
+      "description": "定影SC清除"
+    },
+    {
+      "code": "SP5811",
+      "description": "机器序列号设置SSP"
+    },
+    {
+      "code": "SP5812",
+      "description": "维修电话号码设置"
+    },
+    {
+      "code": "SP5816",
+      "description": "远程服务"
+    },
+    {
+      "code": "SP5821",
+      "description": "远程服务地址"
+    },
+    {
+      "code": "SP5824",
+      "description": "NVRAM数据上传"
+    },
+    {
+      "code": "SP5825",
+      "description": "NVRAM数据下载"
+    },
+    {
+      "code": "SP5828",
+      "description": "网络设置"
+    },
+    {
+      "code": "SP5831",
+      "description": "初始设置模式清除"
+    },
+    {
+      "code": "SP5832",
+      "description": "HDD"
+    },
+    {
+      "code": "SP5836",
+      "description": "捕获设置"
+    },
+    {
+      "code": "SP5840",
+      "description": "[IEEE 802.11]"
+    },
+    {
+      "code": "SP5841",
+      "description": "供应品名称设置"
+    },
+    {
+      "code": "SP5842",
+      "description": "GW S分析设置D FU"
+    },
+    {
+      "code": "SP5844",
+      "description": "USB"
+    },
+    {
+      "code": "SP5845",
+      "description": "传送服务器设置"
+    },
+    {
+      "code": "SP5846",
+      "description": "U CS设置"
+    },
+    {
+      "code": "SP5847",
+      "description": "分辨率降低"
+    },
+    {
+      "code": "SP5848",
+      "description": "网络服务"
+    },
+    {
+      "code": "SP5849",
+      "description": "安装日期"
+    },
+    {
+      "code": "SP5850",
+      "description": "地址簿功能"
+    },
+    {
+      "code": "SP5851",
+      "description": "蓝牙模式"
+    },
+    {
+      "code": "SP5853",
+      "description": "印记数据下载"
+    },
+    {
+      "code": "SP5856",
+      "description": "远 程 R O M 更 新"
+    },
+    {
+      "code": "SP5857",
+      "description": "保存调试日志"
+    },
+    {
+      "code": "SP5858",
+      "description": "何时调试保存"
+    },
+    {
+      "code": "SP5859",
+      "description": "调试日志保存功能"
+    },
+    {
+      "code": "SP5860",
+      "description": "SMTP/POP3/IMAP4"
+    },
+    {
+      "code": "SP5866",
+      "description": "电子邮件报告"
+    },
+    {
+      "code": "SP5870",
+      "description": "公用密钥信息写入未使用"
+    },
+    {
+      "code": "SP5873",
+      "description": "SD卡应用程序移动"
+    },
+    {
+      "code": "SP5875",
+      "description": "SC自动重启"
+    },
+    {
+      "code": "SP5876",
+      "description": "安全清除"
+    },
+    {
+      "code": "SP5878",
+      "description": "选件设置"
+    },
+    {
+      "code": "SP5881",
+      "description": "固定短语组删除"
+    },
+    {
+      "code": "SP5885",
+      "description": "设 置 W I M 功 能 D F U"
+    },
+    {
+      "code": "SP5887",
+      "description": "SD获取计数器"
+    },
+    {
+      "code": "SP5888",
+      "description": "个人信息保护"
+    },
+    {
+      "code": "SP5893",
+      "description": "SDK应用程序计数器DFU"
+    },
+    {
+      "code": "SP5894",
+      "description": "外部计费单元设置切换计费模式"
+    },
+    {
+      "code": "SP5899",
+      "description": "PM双倍计数"
+    },
+    {
+      "code": "SP5907",
+      "description": "即插即用厂商/机型名称"
+    },
+    {
+      "code": "SP5913",
+      "description": "切换允许时间"
+    },
+    {
+      "code": "SP5915",
+      "description": "机械计数器检测"
+    },
+    {
+      "code": "SP5952",
+      "description": "实际调整模式"
+    },
+    {
+      "code": "SP5959",
+      "description": "纸张尺寸"
+    },
+    {
+      "code": "SP5967",
+      "description": "复印服务器：设置功能"
+    },
+    {
+      "code": "SP5974",
+      "description": "[Cherry服务器]"
+    },
+    {
+      "code": "SP5985",
+      "description": "设备设置"
+    },
+    {
+      "code": "SP5990",
+      "description": "SP打印模式(SMC打印)"
+    },
+    {
+      "code": "SP5992",
+      "description": "SP文字模式"
+    },
+    {
+      "code": "SP6006",
+      "description": "ADF对位调整"
+    },
+    {
+      "code": "SP6007",
+      "description": "A D F 输 入 检 查 p . 3 7 6"
+    },
+    {
+      "code": "SP6008",
+      "description": "ADF输出检查tp . 377"
+    },
+    {
+      "code": "SP6009",
+      "description": "DF自由运行"
+    },
+    {
+      "code": "SP6010",
+      "description": "印记位置调整"
+    },
+    {
+      "code": "SP6016",
+      "description": "ADF原稿尺寸优先"
+    },
+    {
+      "code": "SP6017",
+      "description": "ADF放大调整"
+    },
+    {
+      "code": "SP6020",
+      "description": "ADF放大调整"
+    },
+    {
+      "code": "SP6101",
+      "description": "MAC地址SUM错误"
+    },
+    {
+      "code": "SP6102",
+      "description": "打孔位置调整"
+    },
+    {
+      "code": "SP6103",
+      "description": "歪斜修正：拱起量调整"
+    },
+    {
+      "code": "SP6104",
+      "description": "PHY芯片ID非法"
+    },
+    {
+      "code": "SP6105",
+      "description": "PHY回送错误"
+    },
+    {
+      "code": "SP6106",
+      "description": "调整输出对齐位置"
+    },
+    {
+      "code": "SP6109",
+      "description": "装订位置调整"
+    },
+    {
+      "code": "SP6113",
+      "description": "折叠器位置调整(副扫描)"
+    },
+    {
+      "code": "SP6114",
+      "description": "折叠次数"
+    },
+    {
+      "code": "SP6115",
+      "description": "预堆叠数量"
+    },
+    {
+      "code": "SP6118",
+      "description": "齐纸机关闭/开启"
+    },
+    {
+      "code": "SP6120",
+      "description": "最终加工器自由运行"
+    },
+    {
+      "code": "SP6121",
+      "description": "最终加工器输入检查：最终加工器1(D612/D611)叩.378"
+    },
+    {
+      "code": "SP6122",
+      "description": "最终加工器输入检查：最终加工器2(D610)p.382"
+    },
+    {
+      "code": "SP6124",
+      "description": "最终加工器输出检查：最终加工器1(D612/D611) . 380"
+    },
+    {
+      "code": "SP6125",
+      "description": "最终加工器输出检查：最终加工器2(D610)p.384"
+    },
+    {
+      "code": "SP6126",
+      "description": "折叠位置设置(D612)"
+    },
+    {
+      "code": "SP6127",
+      "description": "装订针齐纸时间最终加工器2(D610)"
+    },
+    {
+      "code": "SP6250",
+      "description": "输入检查：分页纸盘"
+    },
+    {
+      "code": "SP6251",
+      "description": "输出检查：分页纸盘"
+    },
+    {
+      "code": "SP6252",
+      "description": "自由运行：分页纸盘"
+    },
+    {
+      "code": "SP6301",
+      "description": "微调Z形折叠1(D615)"
+    },
+    {
+      "code": "SP6309",
+      "description": "输入检查：折叠器(D615)p . 385"
+    },
+    {
+      "code": "SP6310",
+      "description": "输出检查：折叠器(D615)p . 387"
+    },
+    {
+      "code": "SP6311",
+      "description": "FM1Z形折叠：微调第1折叠(D615)"
+    },
+    {
+      "code": "SP6312",
+      "description": "FM1Z形折叠：微调第1折叠(D615)"
+    },
+    {
+      "code": "SP6313",
+      "description": "FM1Z形折叠：微调第2折叠(D615)"
+    },
+    {
+      "code": "SP6314",
+      "description": "FM2相等1/2:微调折叠(D615)"
+    },
+    {
+      "code": "SP6315",
+      "description": "FM3相等第3折叠：微调第1(D615)"
+    },
+    {
+      "code": "SP6316",
+      "description": "FM3相等第3折叠：微调第2(D615)"
+    },
+    {
+      "code": "SP6317",
+      "description": "FM4第3折叠1封盖：微调第1(D615)"
+    },
+    {
+      "code": "SP6318",
+      "description": "FM4第3折叠1封盖：微调第2(D615)"
+    },
+    {
+      "code": "SP6319",
+      "description": "FM5第4折叠V形：微调第1(D615)"
+    },
+    {
+      "code": "SP6320",
+      "description": "FM5第4折叠V形：微调第2(D615)"
+    },
+    {
+      "code": "SP6321",
+      "description": "FM6第4折叠2封盖：微调第1(D615)"
+    },
+    {
+      "code": "SP6322",
+      "description": "FM6第4折叠2封盖：微调第2(D615)"
+    },
+    {
+      "code": "SP6323",
+      "description": "FM6第4折叠2封盖：微调第3(D615)"
+    },
+    {
+      "code": "SP6324",
+      "description": "齐纸机栏板位置调整(D615)"
+    },
+    {
+      "code": "SP6325",
+      "description": "对位拱起量调整(D615)"
+    },
+    {
+      "code": "SP6326",
+      "description": "对位拱起量调整选择"
+    },
+    {
+      "code": "SP6327",
+      "description": "顶部纸盘已满设置：启用"
+    },
+    {
+      "code": "SP6328",
+      "description": "顶部纸盘已满设置：限制输出"
+    },
+    {
+      "code": "SP6350",
+      "description": "邮箱输入检查"
+    },
+    {
+      "code": "SP6351",
+      "description": "邮箱输出检查"
+    },
+    {
+      "code": "SP6352",
+      "description": "邮箱自由运行"
+    },
+    {
+      "code": "SP6450",
+      "description": "盖板送稿器尺寸更改"
+    },
+    {
+      "code": "SP6451",
+      "description": "盖板送稿器输入检查"
+    },
+    {
+      "code": "SP6801",
+      "description": "印记单元"
+    },
+    {
+      "code": "SP6830",
+      "description": "额外装订针"
+    },
+    {
+      "code": "SP6890",
+      "description": "打孔功能启用Z形折叠"
+    },
+    {
+      "code": "SP6900",
+      "description": "ADF底部提升"
+    },
+    {
+      "code": "SP6910",
+      "description": "间歇黑边修正"
+    },
+    {
+      "code": "SP7001",
+      "description": "主电机运行时间"
+    },
+    {
+      "code": "SP7401",
+      "description": "SC总计数器"
+    },
+    {
+      "code": "SP7403",
+      "description": "SC历史记录"
+    },
+    {
+      "code": "SP7404",
+      "description": "SC991历史记录"
+    },
+    {
+      "code": "SP7502",
+      "description": "总卡纸数"
+    },
+    {
+      "code": "SP7503",
+      "description": "总原稿卡纸数"
+    },
+    {
+      "code": "SP7504",
+      "description": "卡纸位置"
+    },
+    {
+      "code": "SP7505",
+      "description": "原稿卡纸检测"
+    },
+    {
+      "code": "SP7506",
+      "description": "按纸张尺寸计数卡纸"
+    },
+    {
+      "code": "SP7507",
+      "description": "绘图仪卡纸历史记录"
+    },
+    {
+      "code": "SP7508",
+      "description": "原稿卡纸历史记录"
+    },
+    {
+      "code": "SP7509",
+      "description": "卡纸位置：折叠单元"
+    },
+    {
+      "code": "SP7617",
+      "description": "部件PM计数器显示"
+    },
+    {
+      "code": "SP7618",
+      "description": "部件PM计数器复位仅限日本"
+    },
+    {
+      "code": "SP7621",
+      "description": "显示PM计数"
+    },
+    {
+      "code": "SP7622",
+      "description": "清除PM计数"
+    },
+    {
+      "code": "SP7623",
+      "description": "单元PM目标"
+    },
+    {
+      "code": "SP7624",
+      "description": "部件更换操作开启/关闭"
+    },
+    {
+      "code": "SP7625",
+      "description": "页面计数历史记录：最新1"
+    },
+    {
+      "code": "SP7626",
+      "description": "页面计数历史记录：最新2"
+    },
+    {
+      "code": "SP7627",
+      "description": "页面计数历史记录：最新3"
+    },
+    {
+      "code": "SP7628",
+      "description": "清除PM计数器清除超出的计数"
+    },
+    {
+      "code": "SP7801",
+      "description": "ROM编号/固件版本"
+    },
+    {
+      "code": "SP7803",
+      "description": "PM计数器显示"
+    },
+    {
+      "code": "SP7804",
+      "description": "PM计数器的复位"
+    },
+    {
+      "code": "SP7807",
+      "description": "SC/卡纸计数器复位"
+    },
+    {
+      "code": "SP7826",
+      "description": "MF错误计数器仅限日本"
+    },
+    {
+      "code": "SP7827",
+      "description": "MF错误计数器清除"
+    },
+    {
+      "code": "SP7832",
+      "description": "自诊断结果显示"
+    },
+    {
+      "code": "SP7834",
+      "description": "清除像素覆盖率数据。"
+    },
+    {
+      "code": "SP7836",
+      "description": "总存储容量"
+    },
+    {
+      "code": "SP7852",
+      "description": "ADF玻璃灰尘检查"
+    },
+    {
+      "code": "SP7901",
+      "description": "确认信息"
+    },
+    {
+      "code": "SP7954",
+      "description": "消耗率计数器"
+    },
+    {
+      "code": "SP8001",
+      "description": "总计：作业总数"
+    },
+    {
+      "code": "SP8002",
+      "description": "复印：作业总数"
+    },
+    {
+      "code": "SP8003",
+      "description": "传真：作业总数"
+    },
+    {
+      "code": "SP8004",
+      "description": "打印：作业总数"
+    },
+    {
+      "code": "SP8005",
+      "description": "扫描：作业总数"
+    },
+    {
+      "code": "SP8006",
+      "description": "本地：作业总数"
+    },
+    {
+      "code": "SP8011",
+      "description": "总计：作业/本 地存储器"
+    },
+    {
+      "code": "SP8012",
+      "description": "复印：作业/本 地存储器"
+    },
+    {
+      "code": "SP8013",
+      "description": "传真：作业/本 地存储器"
+    },
+    {
+      "code": "SP8014",
+      "description": "打印：作业/本 地存储器"
+    },
+    {
+      "code": "SP8015",
+      "description": "扫描：作业/本 地存储器"
+    },
+    {
+      "code": "SP8016",
+      "description": "本地：作业/本 地存储器"
+    },
+    {
+      "code": "SP8017",
+      "description": "其它：作业/本 地存储器"
+    },
+    {
+      "code": "SP8021",
+      "description": "总计：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8022",
+      "description": "复印：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8023",
+      "description": "传真：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8024",
+      "description": "打印：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8025",
+      "description": "扫描：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8026",
+      "description": "本地：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8027",
+      "description": "其它：打印作 业/本地存储器"
+    },
+    {
+      "code": "SP8031",
+      "description": "总计：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8032",
+      "description": "复印：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8033",
+      "description": "传真：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8034",
+      "description": "打印：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8035",
+      "description": "扫描：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8036",
+      "description": "本地：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8037",
+      "description": "其它：打印作业/指定应用程序"
+    },
+    {
+      "code": "SP8041",
+      "description": "总计：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8042",
+      "description": "复印：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8043",
+      "description": "传真：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8044",
+      "description": "打印：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8045",
+      "description": "扫描：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8046",
+      "description": "本地：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8047",
+      "description": "其它：发送作业/本地存储器"
+    },
+    {
+      "code": "SP8051",
+      "description": "总计：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8052",
+      "description": "复印：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8053",
+      "description": "传真：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8054",
+      "description": "打印：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8055",
+      "description": "扫描：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8056",
+      "description": "本地：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8057",
+      "description": "其它：发送作业/指定应用程序"
+    },
+    {
+      "code": "SP8061",
+      "description": "总计：最终加工作业"
+    },
+    {
+      "code": "SP8062",
+      "description": "复印：最终加工作业"
+    },
+    {
+      "code": "SP8063",
+      "description": "传真：最终加工作业"
+    },
+    {
+      "code": "SP8064",
+      "description": "打印：最终加工作业"
+    },
+    {
+      "code": "SP8065",
+      "description": "扫描：最终加工作业"
+    },
+    {
+      "code": "SP8066",
+      "description": "本地：最终加工作业"
+    },
+    {
+      "code": "SP8067",
+      "description": "其它：最终加工作业"
+    },
+    {
+      "code": "SP8071",
+      "description": "总计：作业/页面"
+    },
+    {
+      "code": "SP8072",
+      "description": "复印：作业/页面"
+    },
+    {
+      "code": "SP8073",
+      "description": "传真：作业/页面"
+    },
+    {
+      "code": "SP8074",
+      "description": "打印：作业/页面"
+    },
+    {
+      "code": "SP8075",
+      "description": "扫描：作业/页面"
+    },
+    {
+      "code": "SP8076",
+      "description": "本地：作业/页面"
+    },
+    {
+      "code": "SP8077",
+      "description": "其它：作业/页面"
+    },
+    {
+      "code": "SP8111",
+      "description": "总计：传真发送作业"
+    },
+    {
+      "code": "SP8113",
+      "description": "传真：传真发送作业"
+    },
+    {
+      "code": "SP8121",
+      "description": "总计：互联网传真发送作业"
+    },
+    {
+      "code": "SP8123",
+      "description": "传真：互联网传真发送作业"
+    },
+    {
+      "code": "SP8131",
+      "description": "总计：扫描到电子邮件作业"
+    },
+    {
+      "code": "SP8135",
+      "description": "扫描：扫描到电子邮件作业"
+    },
+    {
+      "code": "SP8141",
+      "description": "总计：传送作业/服务器"
+    },
+    {
+      "code": "SP8145",
+      "description": "扫描：传送作业/服务器"
+    },
+    {
+      "code": "SP8151",
+      "description": "总计：传送作业/个人电脑"
+    },
+    {
+      "code": "SP8155",
+      "description": "扫描：传送作业1个人电脑"
+    },
+    {
+      "code": "SP8161",
+      "description": "总计：个人电脑传真发送作业"
+    },
+    {
+      "code": "SP8163",
+      "description": "传真：个人电脑传真发送作业"
+    },
+    {
+      "code": "SP8171",
+      "description": "总计：传送作业/WSD"
+    },
+    {
+      "code": "SP8175",
+      "description": "扫描：传送作业/WSD"
+    },
+    {
+      "code": "SP8181",
+      "description": "总计：扫描到媒体作业"
+    },
+    {
+      "code": "SP8185",
+      "description": "扫描：扫描到媒体作业"
+    },
+    {
+      "code": "SP8191",
+      "description": "总计：扫描页面总数"
+    },
+    {
+      "code": "SP8192",
+      "description": "复印：扫描页面总数"
+    },
+    {
+      "code": "SP8193",
+      "description": "传真：扫描页面总数"
+    },
+    {
+      "code": "SP8195",
+      "description": "扫描：扫描页面总数"
+    },
+    {
+      "code": "SP8196",
+      "description": "本地：扫描页面总数"
+    },
+    {
+      "code": "SP8201",
+      "description": "总计：大尺寸扫描页面"
+    },
+    {
+      "code": "SP8203",
+      "description": "传真：大尺寸扫描页面"
+    },
+    {
+      "code": "SP8205",
+      "description": "扫描：大尺寸扫描页面"
+    },
+    {
+      "code": "SP8211",
+      "description": "总计：扫描页面/本地存储器"
+    },
+    {
+      "code": "SP8212",
+      "description": "复印：扫描页面/本地存储器"
+    },
+    {
+      "code": "SP8213",
+      "description": "传真：扫描页面/本地存储器"
+    },
+    {
+      "code": "SP8215",
+      "description": "扫描：扫描页面/本地存储器"
+    },
+    {
+      "code": "SP8216",
+      "description": "本地：扫描页面/本地存储器"
+    },
+    {
+      "code": "SP8221",
+      "description": "ADF原稿送纸"
+    },
+    {
+      "code": "SP8231",
+      "description": "扫描页面/模式"
+    },
+    {
+      "code": "SP8241",
+      "description": "总计：扫描页面/原稿"
+    },
+    {
+      "code": "SP8242",
+      "description": "复印：扫描页面/原稿"
+    },
+    {
+      "code": "SP8243",
+      "description": "传真：扫描页面/原稿"
+    },
+    {
+      "code": "SP8245",
+      "description": "扫描：扫描页面/原稿"
+    },
+    {
+      "code": "SP8246",
+      "description": "本地：扫描页面/原稿"
+    },
+    {
+      "code": "SP8251",
+      "description": "总计：扫描页面/图像编辑"
+    },
+    {
+      "code": "SP8252",
+      "description": "复印：扫描页面/图像编辑"
+    },
+    {
+      "code": "SP8255",
+      "description": "扫描：扫描页面/图像编辑"
+    },
+    {
+      "code": "SP8256",
+      "description": "本地：扫描页面/图像编辑"
+    },
+    {
+      "code": "SP8257",
+      "description": "其它：扫描页面/图像编辑"
+    },
+    {
+      "code": "SP8281",
+      "description": "总计：扫描页面/TWAIN"
+    },
+    {
+      "code": "SP8285",
+      "description": "扫描：扫描页面/TWAIN"
+    },
+    {
+      "code": "SP8291",
+      "description": "总计：扫描页面/印记"
+    },
+    {
+      "code": "SP8293",
+      "description": "传真：扫描页面/印记"
+    },
+    {
+      "code": "SP8295",
+      "description": "扫描：扫描页面/印记"
+    },
+    {
+      "code": "SP8301",
+      "description": "总计：扫描页面/尺寸"
+    },
+    {
+      "code": "SP8302",
+      "description": "复印：扫描页面/尺寸"
+    },
+    {
+      "code": "SP8303",
+      "description": "传真：扫描页面/尺寸"
+    },
+    {
+      "code": "SP8305",
+      "description": "扫描：扫描页面/尺寸"
+    },
+    {
+      "code": "SP8306",
+      "description": "本地：扫描页面/尺寸"
+    },
+    {
+      "code": "SP8311",
+      "description": "总计：扫描页面/分辨率"
+    },
+    {
+      "code": "SP8315",
+      "description": "扫描：扫描页面1分辨率"
+    },
+    {
+      "code": "SP8381",
+      "description": "总计：打印页面总数"
+    },
+    {
+      "code": "SP8382",
+      "description": "复印：打印页面总数"
+    },
+    {
+      "code": "SP8383",
+      "description": "传真：打印页面总数"
+    },
+    {
+      "code": "SP8384",
+      "description": "打印：打印页面总数"
+    },
+    {
+      "code": "SP8385",
+      "description": "扫描：打印页面总数"
+    },
+    {
+      "code": "SP8386",
+      "description": "本地：打印页面总数"
+    },
+    {
+      "code": "SP8387",
+      "description": "其它：打印页面总数"
+    },
+    {
+      "code": "SP8391",
+      "description": "大尺寸打印页面"
+    },
+    {
+      "code": "SP8401",
+      "description": "总计：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8402",
+      "description": "复印：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8403",
+      "description": "传真：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8404",
+      "description": "打印：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8405",
+      "description": "扫描：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8406",
+      "description": "本地：打印页面/本地存储器"
+    },
+    {
+      "code": "SP8411",
+      "description": "打印件/双面"
+    },
+    {
+      "code": "SP8421",
+      "description": "总计：打印页面/双面合并"
+    },
+    {
+      "code": "SP8422",
+      "description": "复印：打印页面/双面合并"
+    },
+    {
+      "code": "SP8423",
+      "description": "传真：打印页面/双面合并"
+    },
+    {
+      "code": "SP8424",
+      "description": "打印：打印页面/双面合并"
+    },
+    {
+      "code": "SP8425",
+      "description": "扫描：打印页面/双面合并"
+    },
+    {
+      "code": "SP8426",
+      "description": "本地：打印页面/双面合并"
+    },
+    {
+      "code": "SP8427",
+      "description": "其它：打印页面/双面合并"
+    },
+    {
+      "code": "SP8431",
+      "description": "总计：打印页面/图像编辑"
+    },
+    {
+      "code": "SP8432",
+      "description": "复印：打印页面/图像编辑"
+    },
+    {
+      "code": "SP8434",
+      "description": "打印：打印页面/图像编辑"
+    },
+    {
+      "code": "SP8436",
+      "description": "本地：打印页面/图像编辑"
+    },
+    {
+      "code": "SP8437",
+      "description": "其它：打印页面/图像编辑"
+    },
+    {
+      "code": "SP8441",
+      "description": "总计：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8442",
+      "description": "复印：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8443",
+      "description": "传真：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8444",
+      "description": "打印：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8445",
+      "description": "扫描：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8446",
+      "description": "本地：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8447",
+      "description": "其它：打印页面/纸张尺寸"
+    },
+    {
+      "code": "SP8451",
+      "description": "打印页面/纸盘"
+    },
+    {
+      "code": "SP8461",
+      "description": "总计：打印页面/纸张类型"
+    },
+    {
+      "code": "SP8462",
+      "description": "复印：打印页面/纸张类型"
+    },
+    {
+      "code": "SP8463",
+      "description": "传真：打印页面/纸张类型"
+    },
+    {
+      "code": "SP8464",
+      "description": "打印：打印页面/纸张类型"
+    },
+    {
+      "code": "SP8466",
+      "description": "本地：打印页面/纸张类型"
+    },
+    {
+      "code": "SP8471",
+      "description": "打印页面/放大"
+    },
+    {
+      "code": "SP8481",
+      "description": "总计：打印页面/色粉节省"
+    },
+    {
+      "code": "SP8484",
+      "description": "打印：打印页面/色粉节省"
+    },
+    {
+      "code": "SP8511",
+      "description": "总计：打印页面/模拟"
+    },
+    {
+      "code": "SP8514",
+      "description": "打印：打印页面/模拟"
+    },
+    {
+      "code": "SP8521",
+      "description": "总计：打印页面/最终加工"
+    },
+    {
+      "code": "SP8522",
+      "description": "复印：打印页面/最终加工"
+    },
+    {
+      "code": "SP8523",
+      "description": "传真：打印页面/最终加工"
+    },
+    {
+      "code": "SP8524",
+      "description": "打印：打印页面/最终加工"
+    },
+    {
+      "code": "SP8525",
+      "description": "扫描：打印页面/最终加工"
+    },
+    {
+      "code": "SP8526",
+      "description": "本地：打印页面/最终加工"
+    },
+    {
+      "code": "SP8531",
+      "description": "订书钉"
+    },
+    {
+      "code": "SP8541",
+      "description": "总计：GPC计数器仅限日本"
+    },
+    {
+      "code": "SP8542",
+      "description": "复印：GPC计数器仅限日本"
+    },
+    {
+      "code": "SP8544",
+      "description": "打印： GP C计数器仅 限 日 本"
+    },
+    {
+      "code": "SP8551",
+      "description": "总计：打印书本/最终加工未使用"
+    },
+    {
+      "code": "SP8552",
+      "description": "其它：打印书本/最终加工未使用"
+    },
+    {
+      "code": "SP8554",
+      "description": "打印：打印书本/最终加工未使用"
+    },
+    {
+      "code": "SP8556",
+      "description": "本地：打印书本/最终加工未使用"
+    },
+    {
+      "code": "SP8561",
+      "description": "总计：一张纸"
+    },
+    {
+      "code": "SP8562",
+      "description": "复印：一张纸"
+    },
+    {
+      "code": "SP8563",
+      "description": "传真：一张纸"
+    },
+    {
+      "code": "SP8564",
+      "description": "打印：一张纸"
+    },
+    {
+      "code": "SP8566",
+      "description": "本地：一张纸"
+    },
+    {
+      "code": "SP8567",
+      "description": "其它：一张纸"
+    },
+    {
+      "code": "SP8581",
+      "description": "总计：计数器"
+    },
+    {
+      "code": "SP8591",
+      "description": "其它：计数器"
+    },
+    {
+      "code": "SP8601",
+      "description": "总计：覆盖率计数器"
+    },
+    {
+      "code": "SP8602",
+      "description": "文件：覆盖率计数器"
+    },
+    {
+      "code": "SP8603",
+      "description": "传真：覆盖率计数器"
+    },
+    {
+      "code": "SP8604",
+      "description": "打印：覆盖率计数器"
+    },
+    {
+      "code": "SP8606",
+      "description": "本地：覆盖率计数器"
+    },
+    {
+      "code": "SP8617",
+      "description": "SDK应用程序计数器DFU"
+    },
+    {
+      "code": "SP8621",
+      "description": "功能使用计数器未使用"
+    },
+    {
+      "code": "SP8631",
+      "description": "总计：传真发送页面"
+    },
+    {
+      "code": "SP8633",
+      "description": "传真：传真发送页面"
+    },
+    {
+      "code": "SP8641",
+      "description": "总计：传真发送页面"
+    },
+    {
+      "code": "SP8643",
+      "description": "传真：传真发送页面"
+    },
+    {
+      "code": "SP8651",
+      "description": "总计：扫描到电子邮件页面"
+    },
+    {
+      "code": "SP8655",
+      "description": "扫描：扫描到电子邮件页面"
+    },
+    {
+      "code": "SP8661",
+      "description": "总计：传送页面/服务器"
+    },
+    {
+      "code": "SP8665",
+      "description": "扫描：传送页面/服务器"
+    },
+    {
+      "code": "SP8671",
+      "description": "总计：传送页面/个人电脑"
+    },
+    {
+      "code": "SP8675",
+      "description": "扫描：传送页面1个人电脑"
+    },
+    {
+      "code": "SP8681",
+      "description": "总计：个人电脑传真发送页面"
+    },
+    {
+      "code": "SP8683",
+      "description": "传真：个人电脑传真发送页面"
+    },
+    {
+      "code": "SP8691",
+      "description": "总计：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8692",
+      "description": "复印：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8693",
+      "description": "传真：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8694",
+      "description": "打印：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8695",
+      "description": "扫描：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8696",
+      "description": "本地：发送页面/本地存储器"
+    },
+    {
+      "code": "SP8701",
+      "description": "传真页面/端口"
+    },
+    {
+      "code": "SP8711",
+      "description": "总计：扫描页面/压缩"
+    },
+    {
+      "code": "SP8715",
+      "description": "扫描：扫描页面/压缩"
+    },
+    {
+      "code": "SP8721",
+      "description": "T:Deliv:PGS/WSD"
+    },
+    {
+      "code": "SP8725",
+      "description": "扫描：传送页面/WSD"
+    },
+    {
+      "code": "SP8731",
+      "description": "总计：扫描页面/媒体"
+    },
+    {
+      "code": "SP8735",
+      "description": "扫描：扫描页面/媒体"
+    },
+    {
+      "code": "SP8741",
+      "description": "接收页面/端口"
+    },
+    {
+      "code": "SP8771",
+      "description": "显影计数器"
+    },
+    {
+      "code": "SP8781",
+      "description": "像素覆盖率"
+    },
+    {
+      "code": "SP8791",
+      "description": "本地存储内存剩余空间"
+    },
+    {
+      "code": "SP8801",
+      "description": "色粉剩余量"
+    },
+    {
+      "code": "SP8811",
+      "description": "Eco计数器"
+    },
+    {
+      "code": "SP8851",
+      "description": "覆盖率计数：0-10%"
+    },
+    {
+      "code": "SP8861",
+      "description": "覆盖率计数：11-20%"
+    },
+    {
+      "code": "SP8871",
+      "description": "覆盖率计数：21-30%"
+    },
+    {
+      "code": "SP8881",
+      "description": "覆盖率计数：31%"
+    },
+    {
+      "code": "SP8891",
+      "description": "页面/色粉瓶"
+    },
+    {
+      "code": "SP8901",
+      "description": "覆盖率显示(色粉瓶：上一个)DFU"
+    },
+    {
+      "code": "SP8911",
+      "description": "覆盖率显示(色粉瓶：上一个之前)DFU"
+    },
+    {
+      "code": "SP8921",
+      "description": "计数器计数/总数"
+    },
+    {
+      "code": "SP8941",
+      "description": "机器状态"
+    },
+    {
+      "code": "SP8951",
+      "description": "地址簿注册"
+    },
+    {
+      "code": "SP8961",
+      "description": "Electry状态"
+    },
+    {
+      "code": "SP8999",
+      "description": "管理员计数器列表"
+    }
+  ]
+}

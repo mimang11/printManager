@@ -82,7 +82,7 @@ MIT
 
 #
 
-npm start 只是运行 electron .，它会运行已编译的代码，不会重新编译。
+@@ npm start 只是运行 electron .，它会运行已编译的代码，不会重新编译。
 
 你需要先运行构建命令：
 
