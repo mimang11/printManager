@@ -1,26 +1,61 @@
 /**
  * 错误代码查询页面 - 查询打印机错误代码及解决方案
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import codesData from '../../ricoh_mp9002_codes.json';
 
 interface ErrorCode {
   code: string;
   description: string;
   level?: string;
+  details?: string;
+  causes?: string[];
+  solutions?: string[];
 }
 
 const errorCodes: ErrorCode[] = codesData.errorCodes;
+
+// 备注存储key
+const NOTES_STORAGE_KEY = 'error_code_notes';
 
 function ErrorCodeQuery() {
   const [searchCode, setSearchCode] = useState('');
   const [searchResult, setSearchResult] = useState<ErrorCode | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [editingNote, setEditingNote] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
+
+  // 加载备注
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(NOTES_STORAGE_KEY);
+      if (saved) {
+        setNotes(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('加载备注失败', e);
+    }
+  }, []);
+
+  // 保存备注
+  const saveNote = (code: string, note: string) => {
+    const newNotes = { ...notes };
+    if (note.trim()) {
+      newNotes[code] = note.trim();
+    } else {
+      delete newNotes[code];
+    }
+    setNotes(newNotes);
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(newNotes));
+    setEditingNote(null);
+    setNoteText('');
+  };
 
   // 过滤显示的错误代码列表
   const filteredCodes = useMemo(() => {
     if (!searchCode.trim()) {
-      return errorCodes.slice(0, 50); // 默认显示前50个
+      return errorCodes.slice(0, 50);
     }
     const keyword = searchCode.trim().toUpperCase().replace('SC', '');
     return errorCodes.filter(ec => 
@@ -33,7 +68,6 @@ function ErrorCodeQuery() {
     const code = searchCode.trim().toUpperCase();
     if (!code) return;
     
-    // 标准化搜索代码
     const normalizedCode = code.startsWith('SC') ? code : 'SC' + code;
     
     const result = errorCodes.find(ec => 
@@ -56,13 +90,17 @@ function ErrorCodeQuery() {
     }
   };
 
-  // 获取错误级别的颜色
+  const startEditNote = (code: string) => {
+    setEditingNote(code);
+    setNoteText(notes[code] || '');
+  };
+
   const getLevelColor = (level?: string) => {
     switch (level) {
-      case 'A': return '#dc2626'; // 红色 - 严重
-      case 'B': return '#ea580c'; // 橙色 - 较严重
-      case 'C': return '#ca8a04'; // 黄色 - 中等
-      case 'D': return '#2563eb'; // 蓝色 - 一般
+      case 'A': return '#dc2626';
+      case 'B': return '#ea580c';
+      case 'C': return '#ca8a04';
+      case 'D': return '#2563eb';
       default: return '#6b7280';
     }
   };
@@ -114,9 +152,98 @@ function ErrorCodeQuery() {
                 </span>
               )}
             </h3>
-            <p style={{ margin: '0', color: '#4b5563', lineHeight: '1.6' }}>
+            <p style={{ margin: '0 0 12px 0', color: '#4b5563', lineHeight: '1.6' }}>
               <strong>故障描述：</strong>{searchResult.description}
             </p>
+            {searchResult.details && (
+              <p style={{ margin: '0 0 12px 0', color: '#4b5563', lineHeight: '1.6' }}>
+                <strong>详细信息：</strong>{searchResult.details}
+              </p>
+            )}
+            {searchResult.causes && searchResult.causes.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <strong style={{ color: '#374151' }}>可能原因：</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#4b5563' }}>
+                  {searchResult.causes.filter(c => c.trim()).map((cause, index) => (
+                    <li key={index} style={{ marginBottom: '4px' }}>{cause}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {searchResult.solutions && searchResult.solutions.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <strong style={{ color: '#374151' }}>解决方案：</strong>
+                <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#4b5563' }}>
+                  {searchResult.solutions.map((solution, index) => (
+                    <li key={index} style={{ marginBottom: '4px' }}>{solution.replace(/^\d+[\.\、]\s*/, '')}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            
+            {/* 备注区域 */}
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #fcd34d' }}>
+              <strong style={{ color: '#374151' }}>备注：</strong>
+              {editingNote === searchResult.code ? (
+                <div style={{ marginTop: '8px' }}>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="输入备注信息..."
+                    style={{ 
+                      width: '100%', 
+                      minHeight: '80px', 
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #d1d5db',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => saveNote(searchResult.code, noteText)}
+                      style={{ padding: '4px 12px', fontSize: '13px' }}
+                    >
+                      保存
+                    </button>
+                    <button 
+                      className="btn" 
+                      onClick={() => { setEditingNote(null); setNoteText(''); }}
+                      style={{ padding: '4px 12px', fontSize: '13px' }}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: '8px' }}>
+                  {notes[searchResult.code] ? (
+                    <p style={{ 
+                      margin: '0 0 8px 0', 
+                      color: '#4b5563', 
+                      background: '#ecfdf5',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {notes[searchResult.code]}
+                    </p>
+                  ) : (
+                    <p style={{ margin: '0 0 8px 0', color: '#9ca3af', fontStyle: 'italic' }}>
+                      暂无备注
+                    </p>
+                  )}
+                  <button 
+                    className="btn" 
+                    onClick={() => startEditNote(searchResult.code)}
+                    style={{ padding: '4px 12px', fontSize: '13px' }}
+                  >
+                    {notes[searchResult.code] ? '编辑备注' : '添加备注'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -142,8 +269,9 @@ function ErrorCodeQuery() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '120px' }}>代码</th>
+                <th style={{ width: '100px' }}>代码</th>
                 <th>故障描述</th>
+                <th style={{ width: '60px' }}>备注</th>
               </tr>
             </thead>
             <tbody>
@@ -159,6 +287,17 @@ function ErrorCodeQuery() {
                 >
                   <td style={{ fontWeight: 600, color: '#ef4444' }}>{ec.code}</td>
                   <td style={{ color: '#4b5563' }}>{ec.description}</td>
+                  <td>
+                    {notes[ec.code] && (
+                      <span style={{ 
+                        display: 'inline-block',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#f59e0b'
+                      }} title="有备注" />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,30 +1,65 @@
 /**
  * SP代码查询页面 - 查询打印机SP维修代码
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import codesData from '../../ricoh_mp9002_codes.json';
 
 interface SPCode {
   code: string;
-  description: string;
+  name: string;
+  description?: string;
+  settings?: string[];
 }
 
 const spCodes: SPCode[] = codesData.spCodes;
+
+// 备注存储key
+const NOTES_STORAGE_KEY = 'sp_code_notes';
 
 function SPCodeQuery() {
   const [searchCode, setSearchCode] = useState('');
   const [searchResult, setSearchResult] = useState<SPCode | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [editingNote, setEditingNote] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
+
+  // 加载备注
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(NOTES_STORAGE_KEY);
+      if (saved) {
+        setNotes(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('加载备注失败', e);
+    }
+  }, []);
+
+  // 保存备注
+  const saveNote = (code: string, note: string) => {
+    const newNotes = { ...notes };
+    if (note.trim()) {
+      newNotes[code] = note.trim();
+    } else {
+      delete newNotes[code];
+    }
+    setNotes(newNotes);
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(newNotes));
+    setEditingNote(null);
+    setNoteText('');
+  };
 
   // 过滤显示的SP代码列表
   const filteredCodes = useMemo(() => {
     if (!searchCode.trim()) {
-      return spCodes.slice(0, 50); // 默认显示前50个
+      return spCodes.slice(0, 50);
     }
     const keyword = searchCode.trim().toUpperCase().replace('SP', '');
     return spCodes.filter(sp => 
       sp.code.toUpperCase().includes(keyword) || 
-      sp.description.includes(searchCode.trim())
+      sp.name.includes(searchCode.trim()) ||
+      (sp.description && sp.description.includes(searchCode.trim()))
     ).slice(0, 100);
   }, [searchCode]);
 
@@ -32,7 +67,6 @@ function SPCodeQuery() {
     const code = searchCode.trim().toUpperCase();
     if (!code) return;
     
-    // 标准化搜索代码
     const normalizedCode = code.startsWith('SP') ? code : 'SP' + code;
     
     const result = spCodes.find(sp => 
@@ -53,6 +87,11 @@ function SPCodeQuery() {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const startEditNote = (code: string) => {
+    setEditingNote(code);
+    setNoteText(notes[code] || '');
   };
 
   return (
@@ -89,11 +128,87 @@ function SPCodeQuery() {
             padding: '20px' 
           }}>
             <h3 style={{ margin: '0 0 12px 0', color: '#166534' }}>
-              {searchResult.code}
+              {searchResult.code} - {searchResult.name}
             </h3>
-            <p style={{ margin: '0', color: '#4b5563', lineHeight: '1.6' }}>
-              {searchResult.description}
-            </p>
+            {searchResult.description && (
+              <p style={{ margin: '0 0 12px 0', color: '#4b5563', lineHeight: '1.6' }}>
+                <strong>说明：</strong>{searchResult.description}
+              </p>
+            )}
+            {searchResult.settings && searchResult.settings.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <strong style={{ color: '#374151' }}>设置参数：</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#4b5563' }}>
+                  {searchResult.settings.map((setting, index) => (
+                    <li key={index} style={{ marginBottom: '4px', fontFamily: 'monospace' }}>{setting}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {/* 备注区域 */}
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #d1fae5' }}>
+              <strong style={{ color: '#374151' }}>备注：</strong>
+              {editingNote === searchResult.code ? (
+                <div style={{ marginTop: '8px' }}>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="输入备注信息..."
+                    style={{ 
+                      width: '100%', 
+                      minHeight: '80px', 
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #d1d5db',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => saveNote(searchResult.code, noteText)}
+                      style={{ padding: '4px 12px', fontSize: '13px' }}
+                    >
+                      保存
+                    </button>
+                    <button 
+                      className="btn" 
+                      onClick={() => { setEditingNote(null); setNoteText(''); }}
+                      style={{ padding: '4px 12px', fontSize: '13px' }}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: '8px' }}>
+                  {notes[searchResult.code] ? (
+                    <p style={{ 
+                      margin: '0 0 8px 0', 
+                      color: '#4b5563', 
+                      background: '#fef9c3',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {notes[searchResult.code]}
+                    </p>
+                  ) : (
+                    <p style={{ margin: '0 0 8px 0', color: '#9ca3af', fontStyle: 'italic' }}>
+                      暂无备注
+                    </p>
+                  )}
+                  <button 
+                    className="btn" 
+                    onClick={() => startEditNote(searchResult.code)}
+                    style={{ padding: '4px 12px', fontSize: '13px' }}
+                  >
+                    {notes[searchResult.code] ? '编辑备注' : '添加备注'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -119,8 +234,10 @@ function SPCodeQuery() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '120px' }}>代码</th>
+                <th style={{ width: '100px' }}>代码</th>
+                <th style={{ width: '150px' }}>名称</th>
                 <th>说明</th>
+                <th style={{ width: '60px' }}>备注</th>
               </tr>
             </thead>
             <tbody>
@@ -135,7 +252,21 @@ function SPCodeQuery() {
                   }}
                 >
                   <td style={{ fontWeight: 600, color: '#3b82f6' }}>{sp.code}</td>
-                  <td style={{ color: '#4b5563' }}>{sp.description}</td>
+                  <td style={{ color: '#374151' }}>{sp.name}</td>
+                  <td style={{ color: '#6b7280', fontSize: '13px' }}>
+                    {sp.description ? (sp.description.length > 50 ? sp.description.slice(0, 50) + '...' : sp.description) : '-'}
+                  </td>
+                  <td>
+                    {notes[sp.code] && (
+                      <span style={{ 
+                        display: 'inline-block',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#f59e0b'
+                      }} title="有备注" />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
