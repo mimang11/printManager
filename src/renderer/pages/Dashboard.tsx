@@ -62,8 +62,8 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // 页面打开时自动更新一次
-    handleRefresh();
+    // 页面打开时只加载本地数据，不自动抓取
+    loadData();
   }, []);
 
   // 根据视图模式获取日期范围
