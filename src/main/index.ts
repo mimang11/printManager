@@ -179,13 +179,13 @@ ipcMain.handle('refresh-all', async (): Promise<ScrapeResult[]> => {
       printer.status = 'online';
       printer.last_updated = new Date().toISOString();
 
-      // 计算日增量
-      const yesterdayRecord = records.find(r => 
-        r.printer_id === printer.id && 
-        r.date === getYesterdayDate()
-      );
-      const dailyIncrement = yesterdayRecord 
-        ? result.counter - yesterdayRecord.total_counter 
+      // 计算日增量 - 找最近一天的记录（不一定是昨天）
+      const printerRecords = records
+        .filter(r => r.printer_id === printer.id && r.date < today)
+        .sort((a, b) => b.date.localeCompare(a.date)); // 按日期降序
+      const lastRecord = printerRecords[0]; // 最近一天的记录
+      const dailyIncrement = lastRecord 
+        ? result.counter - lastRecord.total_counter 
         : 0;
 
       // 查找或创建今日记录
@@ -239,11 +239,13 @@ ipcMain.handle('refresh-one', async (_, printerId: string): Promise<ScrapeResult
     printer.status = 'online';
     printer.last_updated = new Date().toISOString();
 
-    const yesterdayRecord = records.find(r => 
-      r.printer_id === printer.id && r.date === getYesterdayDate()
-    );
-    const dailyIncrement = yesterdayRecord 
-      ? result.counter - yesterdayRecord.total_counter 
+    // 计算日增量 - 找最近一天的记录（不一定是昨天）
+    const printerRecords = records
+      .filter(r => r.printer_id === printer.id && r.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date)); // 按日期降序
+    const lastRecord = printerRecords[0]; // 最近一天的记录
+    const dailyIncrement = lastRecord 
+      ? result.counter - lastRecord.total_counter 
       : 0;
 
     const existingIndex = records.findIndex(r => 

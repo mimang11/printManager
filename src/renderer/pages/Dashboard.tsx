@@ -108,7 +108,7 @@ function Dashboard() {
     return records.filter(r => r.date >= start && r.date <= end);
   };
 
-  // 计算统计数据
+  // 计算统计数据（考虑损耗和其他收入）
   const calculateStats = () => {
     const { start, end } = getDateRange();
     const prevRange = getPrevDateRange();
@@ -126,9 +126,11 @@ function Dashboard() {
     currentRecords.forEach(r => {
       const printer = printerMap.get(r.printer_id);
       if (printer) {
+        const wasteCount = r.waste_count || 0;
+        const billableCount = Math.max(0, r.daily_increment - wasteCount); // 有效印量
         totalCount += r.daily_increment;
-        totalRevenue += r.daily_increment * printer.financials.price_per_page;
-        totalCost += r.daily_increment * printer.financials.cost_per_page;
+        totalRevenue += billableCount * printer.financials.price_per_page; // 营收基于有效印量
+        totalCost += r.daily_increment * printer.financials.cost_per_page; // 成本基于物理增量
       }
     });
     
@@ -137,8 +139,10 @@ function Dashboard() {
     prevRecords.forEach(r => {
       const printer = printerMap.get(r.printer_id);
       if (printer) {
+        const wasteCount = r.waste_count || 0;
+        const billableCount = Math.max(0, r.daily_increment - wasteCount);
         prevCount += r.daily_increment;
-        prevRevenue += r.daily_increment * printer.financials.price_per_page;
+        prevRevenue += billableCount * printer.financials.price_per_page;
       }
     });
     

@@ -274,10 +274,12 @@ export function calculateComparisonData(
     .filter(r => r.date === yesterday)
     .reduce((sum, r) => sum + r.daily_increment, 0);
 
-  // 周对比
+  // 周对比（周一为一周开始）
   const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=周日, 1=周一, ..., 6=周六
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 周日时往前推6天到周一
   const thisWeekStart = new Date(now);
-  thisWeekStart.setDate(now.getDate() - now.getDay());
+  thisWeekStart.setDate(now.getDate() - daysFromMonday);
   const lastWeekStart = new Date(thisWeekStart);
   lastWeekStart.setDate(lastWeekStart.getDate() - 7);
   const lastWeekEnd = new Date(thisWeekStart);
