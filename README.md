@@ -10,12 +10,24 @@
 -   **营收管理** - 每台机器明细、其他收入、自定义公式
 -   **数据对比** - 日/周/月环比分析
 
+## 数据存储
+
+本系统使用 **Turso** (LibSQL) 作为云端数据库，支持数据同步和持久化存储。
+
 ## 快速开始
 
 ### 环境要求
 
 -   Node.js >= 18
 -   npm >= 9
+-   Turso 数据库账户
+
+### 环境配置
+
+1. 复制 `.env.example` 为 `.env`
+2. 填写你的 Turso 数据库连接信息：
+   - `TURSO_DATABASE_URL` - 数据库 URL
+   - `TURSO_AUTH_TOKEN` - 认证令牌
 
 ### 安装依赖
 
@@ -75,6 +87,7 @@ npm run dist
 -   **Vite** - 构建工具
 -   **Recharts** - 图表库
 -   **Axios + Cheerio** - 网页抓取
+-   **Turso (LibSQL)** - 云端数据库
 
 ## 许可证
 
