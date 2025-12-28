@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -804,6 +804,45 @@ ipcMain.handle('update-monthly-rent', async (_, rent: number) => {
     return { success: true };
   } catch (error: any) {
     console.error('更新月租金失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取看板统计数据 (云端)
+ */
+ipcMain.handle('get-dashboard-stats', async (_, startDate: string, endDate: string, prevStartDate: string, prevEndDate: string) => {
+  try {
+    const data = await getDashboardStats(startDate, endDate, prevStartDate, prevEndDate);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('获取看板统计数据失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取看板图表数据 (云端)
+ */
+ipcMain.handle('get-dashboard-chart', async (_, dates: string[]) => {
+  try {
+    const data = await getDashboardChartData(dates);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('获取看板图表数据失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取看板饼图数据 (云端)
+ */
+ipcMain.handle('get-dashboard-pie', async (_, startDate: string, endDate: string) => {
+  try {
+    const data = await getDashboardPieData(startDate, endDate);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('获取看板饼图数据失败:', error);
     return { success: false, error: error.message };
   }
 });

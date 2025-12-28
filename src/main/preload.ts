@@ -50,9 +50,6 @@ const electronAPI: ElectronAPI = {
   getRecords: (printerId, startDate, endDate) => 
     ipcRenderer.invoke('get-records', printerId, startDate, endDate),
   
-  // 获取看板统计数据
-  getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
-  
   // 获取图表数据
   getChartData: (days) => ipcRenderer.invoke('get-chart-data', days),
   
@@ -146,6 +143,17 @@ const electronAPI: ElectronAPI = {
   
   // 更新月租金
   updateMonthlyRent: (rent) => ipcRenderer.invoke('update-monthly-rent', rent),
+  
+  // ========== 看板数据 (云端) ==========
+  
+  // 获取看板统计数据
+  getDashboardStats: (startDate, endDate, prevStartDate, prevEndDate) => ipcRenderer.invoke('get-dashboard-stats', startDate, endDate, prevStartDate, prevEndDate),
+  
+  // 获取看板图表数据
+  getDashboardChart: (dates) => ipcRenderer.invoke('get-dashboard-chart', dates),
+  
+  // 获取看板饼图数据
+  getDashboardPie: (startDate, endDate) => ipcRenderer.invoke('get-dashboard-pie', startDate, endDate),
 };
 
 // 使用 contextBridge 安全地暴露 API

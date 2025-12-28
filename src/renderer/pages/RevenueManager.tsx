@@ -551,6 +551,36 @@ function RevenueManager() {
         </div>
       )}
 
+      {/* 房租设置弹窗 */}
+      {showRentModal && (
+        <div className="modal-overlay" onClick={() => setShowRentModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">⚙️ 设置月租金</h2>
+              <button className="modal-close" onClick={() => setShowRentModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">月租金 (元)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="1"
+                  className="form-input" 
+                  value={editingRent}
+                  onChange={(e) => setEditingRent(parseFloat(e.target.value) || 0)} 
+                />
+                <p className="form-hint">每月固定房租成本，用于计算盈亏平衡</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowRentModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSaveRent}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .tooltip-trigger .tooltip-content { display: none; }
         .tooltip-trigger:hover .tooltip-content { display: block; }

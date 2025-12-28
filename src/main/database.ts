@@ -698,3 +698,210 @@ export async function getMonthlyRent(): Promise<number> {
 export async function updateMonthlyRent(rent: number): Promise<void> {
   await updateSetting('monthly_rent', rent.toString());
 }
+
+// ============================================
+// 看板数据相关函数
+// ============================================
+
+/** 看板统计数据 */
+export interface DashboardStatsData {
+  totalCount: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  prevCount: number;
+  prevRevenue: number;
+  countChange: number;
+  revenueChange: number;
+}
+
+/** 看板图表数据点 */
+export interface DashboardChartPoint {
+  date: string;
+  count: number;
+  [printerName: string]: string | number;
+}
+
+/** 看板饼图数据 */
+export interface DashboardPieData {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+/** 获取看板统计数据 (云端) */
+export async function getDashboardStats(startDate: string, endDate: string, prevStartDate: string, prevEndDate: string): Promise<DashboardStatsData> {
+  const db = getDatabase();
+  const printers = await getAllPrinters();
+  const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
+  
+  // 获取当前周期数据
+  const currentResult = await db.execute({
+    sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
+    args: [startDate, endDate],
+  });
+  
+  // 获取前一周期数据
+  const prevResult = await db.execute({
+    sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
+    args: [prevStartDate, prevEndDate],
+  });
+  
+  // 计算实际打印量 (累计差值)
+  const calcPrints = (rows: any[]) => {
+    const ipDateMap = new Map<string, Map<string, number>>();
+    for (const row of rows) {
+      const ip = row.machine_ip as string;
+      const date = row.log_date as string;
+      const count = Number(row.print_count) || 0;
+      if (!ipDateMap.has(ip)) ipDateMap.set(ip, new Map());
+      ipDateMap.get(ip)!.set(date, count);
+    }
+    
+    let totalCount = 0, totalRevenue = 0, totalCost = 0;
+    for (const [ip, dateMap] of ipDateMap) {
+      const dates = Array.from(dateMap.keys()).sort();
+      const printer = printerMap.get(ip);
+      const price = printer?.price_per_page || 0.5;
+      const cost = printer?.cost_per_page || 0.05;
+      
+      for (let i = 0; i < dates.length; i++) {
+        const curr = dateMap.get(dates[i]) || 0;
+        const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
+        const dailyPrints = Math.max(0, curr - prev);
+        totalCount += dailyPrints;
+        totalRevenue += dailyPrints * price;
+        totalCost += dailyPrints * cost;
+      }
+    }
+    return { totalCount, totalRevenue, totalCost };
+  };
+  
+  const current = calcPrints(currentResult.rows);
+  const prev = calcPrints(prevResult.rows);
+  
+  const countChange = prev.totalCount > 0 ? ((current.totalCount - prev.totalCount) / prev.totalCount) * 100 : 0;
+  const revenueChange = prev.totalRevenue > 0 ? ((current.totalRevenue - prev.totalRevenue) / prev.totalRevenue) * 100 : 0;
+  
+  return {
+    totalCount: current.totalCount,
+    totalRevenue: Math.round(current.totalRevenue * 100) / 100,
+    totalCost: Math.round(current.totalCost * 100) / 100,
+    totalProfit: Math.round((current.totalRevenue - current.totalCost) * 100) / 100,
+    prevCount: prev.totalCount,
+    prevRevenue: Math.round(prev.totalRevenue * 100) / 100,
+    countChange: Math.round(countChange * 10) / 10,
+    revenueChange: Math.round(revenueChange * 10) / 10,
+  };
+}
+
+/** 获取看板图表数据 (云端) */
+export async function getDashboardChartData(dates: string[]): Promise<DashboardChartPoint[]> {
+  const db = getDatabase();
+  const printers = await getAllPrinters();
+  
+  const result: DashboardChartPoint[] = [];
+  
+  for (const date of dates) {
+    // 获取前一天日期
+    const prevDate = new Date(date);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const prevDateStr = prevDate.toISOString().split('T')[0];
+    
+    // 获取当天和前一天的数据
+    const logsResult = await db.execute({
+      sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date IN (?, ?) ORDER BY machine_ip`,
+      args: [prevDateStr, date],
+    });
+    
+    const dataPoint: DashboardChartPoint = { date: date.slice(5), count: 0 };
+    
+    // 按 IP 分组计算
+    const ipMap = new Map<string, { prev: number; curr: number; name: string }>();
+    for (const row of logsResult.rows) {
+      const ip = row.machine_ip as string;
+      const logDate = row.log_date as string;
+      const count = Number(row.print_count) || 0;
+      const name = row.machine_name as string;
+      
+      if (!ipMap.has(ip)) ipMap.set(ip, { prev: 0, curr: 0, name });
+      const entry = ipMap.get(ip)!;
+      if (logDate === prevDateStr) entry.prev = count;
+      else if (logDate === date) entry.curr = count;
+    }
+    
+    // 计算每台打印机的实际打印量
+    for (const [ip, data] of ipMap) {
+      const dailyPrints = Math.max(0, data.curr - data.prev);
+      dataPoint.count += dailyPrints;
+      
+      // 查找打印机配置获取名称
+      const printer = printers.find(p => p.machine_ip === ip);
+      const name = printer?.machine_name || data.name;
+      dataPoint[name] = (dataPoint[name] as number || 0) + dailyPrints;
+    }
+    
+    result.push(dataPoint);
+  }
+  
+  return result;
+}
+
+/** 获取看板饼图数据 (云端) */
+export async function getDashboardPieData(startDate: string, endDate: string): Promise<DashboardPieData[]> {
+  const db = getDatabase();
+  const printers = await getAllPrinters();
+  
+  // 获取日期范围内的数据
+  const logsResult = await db.execute({
+    sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
+    args: [startDate, endDate],
+  });
+  
+  // 按 IP 分组计算实际打印量
+  const ipTotals = new Map<string, { total: number; name: string }>();
+  const ipDateMap = new Map<string, Map<string, number>>();
+  
+  for (const row of logsResult.rows) {
+    const ip = row.machine_ip as string;
+    const date = row.log_date as string;
+    const count = Number(row.print_count) || 0;
+    const name = row.machine_name as string;
+    
+    if (!ipDateMap.has(ip)) {
+      ipDateMap.set(ip, new Map());
+      ipTotals.set(ip, { total: 0, name });
+    }
+    ipDateMap.get(ip)!.set(date, count);
+  }
+  
+  // 计算每台打印机的实际打印量
+  for (const [ip, dateMap] of ipDateMap) {
+    const dates = Array.from(dateMap.keys()).sort();
+    let total = 0;
+    for (let i = 0; i < dates.length; i++) {
+      const curr = dateMap.get(dates[i]) || 0;
+      const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
+      total += Math.max(0, curr - prev);
+    }
+    ipTotals.get(ip)!.total = total;
+  }
+  
+  // 转换为饼图数据
+  const grandTotal = Array.from(ipTotals.values()).reduce((sum, v) => sum + v.total, 0);
+  const pieData: DashboardPieData[] = [];
+  
+  for (const [ip, data] of ipTotals) {
+    if (data.total > 0) {
+      const printer = printers.find(p => p.machine_ip === ip);
+      const name = printer?.machine_name || data.name;
+      pieData.push({
+        name: name,
+        value: data.total,
+        percentage: grandTotal > 0 ? Math.round((data.total / grandTotal) * 1000) / 10 : 0,
+      });
+    }
+  }
+  
+  return pieData.sort((a, b) => b.value - a.value);
+}

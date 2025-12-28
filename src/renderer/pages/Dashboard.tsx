@@ -1,10 +1,10 @@
 /**
- * Dashboard 页面 - BI 数据看板
- * 支持按年/月/日切换查看数据
+ * Dashboard 页面 - BI 数据看板 (云端版)
+ * 从 Turso 云端数据库获取数据
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DashboardStats, ChartDataPoint, PieChartData, DailyRevenueDetail, PrinterConfig, DailyRecord } from '../../shared/types';
+import { DashboardStatsData, DashboardChartPoint, DashboardPieData } from '../../shared/types';
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -18,53 +18,15 @@ function Dashboard() {
   const [viewMode, setViewMode] = useState<'day' | 'month' | 'year'>('day');
   
   // 数据状态
-  const [printers, setPrinters] = useState<PrinterConfig[]>([]);
-  const [records, setRecords] = useState<DailyRecord[]>([]);
+  const [stats, setStats] = useState<DashboardStatsData | null>(null);
+  const [chartData, setChartData] = useState<DashboardChartPoint[]>([]);
+  const [pieData, setPieData] = useState<DashboardPieData[]>([]);
+  const [printerNames, setPrinterNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
-  // 弹窗状态
-  const [showRevenueModal, setShowRevenueModal] = useState(false);
-  const [showProfitModal, setShowProfitModal] = useState(false);
-  const [monthlyDetail, setMonthlyDetail] = useState<DailyRevenueDetail[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null); // 选中的设备ID
-
-  // 加载基础数据
-  const loadData = async () => {
-    try {
-      const [printerList, recordList] = await Promise.all([
-        window.electronAPI.getPrinters(),
-        window.electronAPI.getRecords(),
-      ]);
-      setPrinters(printerList);
-      setRecords(recordList);
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error('加载数据失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      // 抓取当天打印数量并存入数据
-      await window.electronAPI.refreshAll();
-      await loadData();
-    } catch (error) {
-      console.error('刷新失败:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    // 页面打开时只加载本地数据，不自动抓取
-    loadData();
-  }, []);
+  // 选中的设备
+  const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
 
   // 根据视图模式获取日期范围
   const getDateRange = () => {
@@ -77,9 +39,7 @@ function Dashboard() {
       const end = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
       return { start, end };
     } else {
-      const start = `${selectedYear}-01-01`;
-      const end = `${selectedYear}-12-31`;
-      return { start, end };
+      return { start: `${selectedYear}-01-01`, end: `${selectedYear}-12-31` };
     }
   };
 
@@ -97,227 +57,81 @@ function Dashboard() {
       const end = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
       return { start, end };
     } else {
-      const start = `${selectedYear - 1}-01-01`;
-      const end = `${selectedYear - 1}-12-31`;
-      return { start, end };
+      return { start: `${selectedYear - 1}-01-01`, end: `${selectedYear - 1}-12-31` };
     }
   };
 
-  // 过滤记录
-  const filterRecords = (start: string, end: string) => {
-    return records.filter(r => r.date >= start && r.date <= end);
-  };
-
-  // 计算统计数据（考虑损耗和其他收入）
-  const calculateStats = () => {
-    const { start, end } = getDateRange();
-    const prevRange = getPrevDateRange();
-    
-    const currentRecords = filterRecords(start, end);
-    const prevRecords = filterRecords(prevRange.start, prevRange.end);
-    
-    const printerMap = new Map<string, PrinterConfig>();
-    printers.forEach(p => printerMap.set(p.id, p));
-    
-    let totalCount = 0;
-    let totalRevenue = 0;
-    let totalCost = 0;
-    
-    currentRecords.forEach(r => {
-      const printer = printerMap.get(r.printer_id);
-      if (printer) {
-        const wasteCount = r.waste_count || 0;
-        const billableCount = Math.max(0, r.daily_increment - wasteCount); // 有效印量
-        totalCount += r.daily_increment;
-        totalRevenue += billableCount * printer.financials.price_per_page; // 营收基于有效印量
-        totalCost += r.daily_increment * printer.financials.cost_per_page; // 成本基于物理增量
-      }
-    });
-    
-    let prevCount = 0;
-    let prevRevenue = 0;
-    prevRecords.forEach(r => {
-      const printer = printerMap.get(r.printer_id);
-      if (printer) {
-        const wasteCount = r.waste_count || 0;
-        const billableCount = Math.max(0, r.daily_increment - wasteCount);
-        prevCount += r.daily_increment;
-        prevRevenue += billableCount * printer.financials.price_per_page;
-      }
-    });
-    
-    const countChange = prevCount > 0 ? ((totalCount - prevCount) / prevCount) * 100 : 0;
-    const revenueChange = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
-    
-    return {
-      totalCount,
-      totalRevenue: Math.round(totalRevenue * 100) / 100,
-      totalCost: Math.round(totalCost * 100) / 100,
-      totalProfit: Math.round((totalRevenue - totalCost) * 100) / 100,
-      countChange: Math.round(countChange * 10) / 10,
-      revenueChange: Math.round(revenueChange * 10) / 10,
-    };
-  };
-
-  // 计算图表数据
-  const calculateChartData = (): ChartDataPoint[] => {
-    const result: ChartDataPoint[] = [];
-    const printerMap = new Map<string, PrinterConfig>();
-    printers.forEach(p => printerMap.set(p.id, p));
-    
+  // 生成图表日期列表
+  const getChartDates = () => {
+    const dates: string[] = [];
     if (viewMode === 'day') {
-      // 按日视图：显示最近7天
+      // 最近7天
       const baseDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
-      for (let i = 0; i < 7; i++) {
+      for (let i = 6; i >= 0; i--) {
         const date = new Date(baseDate);
-        date.setDate(date.getDate() - (6 - i));
-        const dateStr = date.toISOString().split('T')[0];
-        const dayRecords = records.filter(r => r.date === dateStr);
-        
-        const dataPoint: ChartDataPoint = {
-          date: dateStr.slice(5),
-          count: dayRecords.reduce((sum, r) => sum + r.daily_increment, 0),
-        };
-        printers.forEach(printer => {
-          const printerRecords = dayRecords.filter(r => r.printer_id === printer.id);
-          dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
-        });
-        result.push(dataPoint);
+        date.setDate(date.getDate() - i);
+        dates.push(date.toISOString().split('T')[0]);
       }
     } else if (viewMode === 'month') {
-      // 按月视图：检测数据密度
+      // 当月每天
       const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-      const monthStart = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
-      const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-      const monthRecords = records.filter(r => r.date >= monthStart && r.date <= monthEnd);
-      
-      // 统计有数据的天数
-      const daysWithData = new Set(monthRecords.filter(r => r.daily_increment > 0).map(r => r.date)).size;
-      
-      // 如果有数据的天数少于7天，显示最近7天
-      const showRecentDays = daysWithData < 7;
-      const days = showRecentDays ? 7 : daysInMonth;
-      const baseDate = showRecentDays 
-        ? new Date() // 从今天往前推7天
-        : new Date(selectedYear, selectedMonth - 1, 1);
-      
-      for (let i = 0; i < days; i++) {
-        const date = new Date(baseDate);
-        if (showRecentDays) {
-          date.setDate(date.getDate() - (days - 1 - i));
-        } else {
-          date.setDate(i + 1);
-        }
-        const dateStr = date.toISOString().split('T')[0];
-        const dayRecords = records.filter(r => r.date === dateStr);
-        
-        const dataPoint: ChartDataPoint = {
-          date: dateStr.slice(5),
-          count: dayRecords.reduce((sum, r) => sum + r.daily_increment, 0),
-        };
-        printers.forEach(printer => {
-          const printerRecords = dayRecords.filter(r => r.printer_id === printer.id);
-          dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
-        });
-        result.push(dataPoint);
+      for (let d = 1; d <= daysInMonth; d++) {
+        dates.push(`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
       }
     } else {
-      // 年视图：显示每月数据
-      for (let month = 1; month <= 12; month++) {
-        const start = `${selectedYear}-${String(month).padStart(2, '0')}-01`;
-        const daysInMonth = new Date(selectedYear, month, 0).getDate();
-        const end = `${selectedYear}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-        const monthRecords = filterRecords(start, end);
-        
-        const dataPoint: ChartDataPoint = {
-          date: `${month}月`,
-          count: monthRecords.reduce((sum, r) => sum + r.daily_increment, 0),
-        };
-        printers.forEach(printer => {
-          const printerRecords = monthRecords.filter(r => r.printer_id === printer.id);
-          dataPoint[printer.alias] = printerRecords.reduce((sum, r) => sum + r.daily_increment, 0);
-        });
-        result.push(dataPoint);
+      // 每月第一天（用于年度统计）
+      for (let m = 1; m <= 12; m++) {
+        const daysInMonth = new Date(selectedYear, m, 0).getDate();
+        dates.push(`${selectedYear}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`);
       }
     }
-    
-    return result;
+    return dates;
   };
 
-  // 计算饼图数据
-  const calculatePieData = (): PieChartData[] => {
-    const { start, end } = getDateRange();
-    const rangeRecords = filterRecords(start, end);
-    
-    const printerTotals = new Map<string, number>();
-    rangeRecords.forEach(r => {
-      const current = printerTotals.get(r.printer_id) || 0;
-      printerTotals.set(r.printer_id, current + r.daily_increment);
-    });
-    
-    const total = Array.from(printerTotals.values()).reduce((sum, v) => sum + v, 0);
-    
-    return printers.map(p => {
-      const value = printerTotals.get(p.id) || 0;
-      return {
-        name: p.alias,
-        value,
-        percentage: total > 0 ? Math.round((value / total) * 1000) / 10 : 0,
-      };
-    }).filter(d => d.value > 0);
-  };
-
-  // 加载明细
-  const loadMonthlyDetail = async () => {
-    setDetailLoading(true);
+  // 加载数据
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const data = await window.electronAPI.getMonthlyRevenueDetail(selectedYear, selectedMonth);
-      setMonthlyDetail(data);
+      const { start, end } = getDateRange();
+      const prev = getPrevDateRange();
+      const chartDates = getChartDates();
+      
+      // 并行加载所有数据
+      const [statsResult, chartResult, pieResult] = await Promise.all([
+        window.electronAPI.getDashboardStats(start, end, prev.start, prev.end),
+        window.electronAPI.getDashboardChart(chartDates),
+        window.electronAPI.getDashboardPie(start, end),
+      ]);
+      
+      if (statsResult.success && statsResult.data) {
+        setStats(statsResult.data);
+      }
+      if (chartResult.success && chartResult.data) {
+        setChartData(chartResult.data);
+        // 提取打印机名称
+        const names = new Set<string>();
+        chartResult.data.forEach(point => {
+          Object.keys(point).forEach(key => {
+            if (key !== 'date' && key !== 'count') names.add(key);
+          });
+        });
+        setPrinterNames(Array.from(names));
+      }
+      if (pieResult.success && pieResult.data) {
+        setPieData(pieResult.data);
+      }
+      
+      setLastUpdate(new Date());
     } catch (error) {
-      console.error('加载明细失败:', error);
+      console.error('加载数据失败:', error);
     } finally {
-      setDetailLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleRevenueClick = () => {
-    setShowRevenueModal(true);
-    loadMonthlyDetail();
-  };
-
-  const handleProfitClick = () => {
-    setShowProfitModal(true);
-    loadMonthlyDetail();
-  };
-
-  // 使用 useMemo 缓存计算结果，避免重复渲染（必须在条件返回之前）
-  const stats = useMemo(() => calculateStats(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
-  const chartData = useMemo(() => calculateChartData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
-  const pieData = useMemo(() => calculatePieData(), [printers, records, viewMode, selectedYear, selectedMonth, selectedDay]);
-  
-  // 缓存饼图 Cell 数据
-  const pieCellData = useMemo(() => {
-    return pieData.map((entry, index) => {
-      const printer = printers.find(p => p.alias === entry.name);
-      const isSelected = selectedPrinter && printer?.id === selectedPrinter;
-      return {
-        key: `cell-${index}`,
-        fill: COLORS[index % COLORS.length],
-        stroke: isSelected ? '#1f2937' : 'none',
-        strokeWidth: isSelected ? 3 : 0,
-        opacity: selectedPrinter && !isSelected ? 0.4 : 1,
-      };
-    });
-  }, [pieData, printers, selectedPrinter]);
-  
-  const detailTotals = useMemo(() => monthlyDetail.reduce(
-    (acc, d) => ({ count: acc.count + d.count, revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit }),
-    { count: 0, revenue: 0, cost: 0, profit: 0 }
-  ), [monthlyDetail]);
-
-  if (loading) {
-    return <div className="loading">加载中...</div>;
-  }
+  useEffect(() => {
+    loadData();
+  }, [selectedYear, selectedMonth, selectedDay, viewMode]);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -326,74 +140,62 @@ function Dashboard() {
   const periodLabel = viewMode === 'day' ? '当日' : viewMode === 'month' ? '本月' : '本年';
   const prevLabel = viewMode === 'day' ? '昨日' : viewMode === 'month' ? '上月' : '去年';
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
-  };
-
-  // 获取选中设备的名称
-  const selectedPrinterName = selectedPrinter 
-    ? printers.find(p => p.id === selectedPrinter)?.alias 
-    : null;
+  const formatTimestamp = (date: Date) => date.toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
 
   // 过滤后的打印机列表（用于柱状图）
   const filteredPrinters = selectedPrinter 
-    ? printers.filter(p => p.id === selectedPrinter)
-    : printers;
+    ? printerNames.filter(n => n === selectedPrinter)
+    : printerNames;
 
   // 饼图点击事件
   const handlePieClick = (data: any) => {
     if (data && data.name) {
-      const printer = printers.find(p => p.alias === data.name);
-      if (printer) {
-        setSelectedPrinter(printer.id);
-      }
+      setSelectedPrinter(data.name);
     }
   };
 
-  // 重置选择
-  const resetSelection = () => {
-    setSelectedPrinter(null);
-  };
+  const resetSelection = () => setSelectedPrinter(null);
+
+  if (loading && !stats) {
+    return <div className="loading">加载中...</div>;
+  }
 
   return (
     <div>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <h1 className="page-title">数据看板</h1>
+          <h1 className="page-title">数据看板 <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(云端)</span></h1>
           {lastUpdate && (
-            <span style={{
-              fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
-              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px'
-            }}>
+            <span style={{ fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
+              padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#22c55e', fontSize: '8px' }}>●</span>
               数据更新于 {formatTimestamp(lastUpdate)}
             </span>
           )}
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={viewMode} onChange={(e) => setViewMode(e.target.value as any)}>
+          <select className="form-input" style={{ width: '100px' }} value={viewMode} onChange={(e) => setViewMode(e.target.value as any)}>
             <option value="day">按日</option>
             <option value="month">按月</option>
             <option value="year">按年</option>
           </select>
-          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '100px' }} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
           </select>
           {viewMode !== 'year' && (
-            <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
+            <select className="form-input" style={{ width: '80px' }} value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
               {months.map(m => <option key={m} value={m}>{m}月</option>)}
             </select>
           )}
           {viewMode === 'day' && (
-            <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={selectedDay} onChange={(e) => setSelectedDay(Number(e.target.value))}>
+            <select className="form-input" style={{ width: '80px' }} value={selectedDay} onChange={(e) => setSelectedDay(Number(e.target.value))}>
               {days.map(d => <option key={d} value={d}>{d}日</option>)}
             </select>
           )}
-          <button className="btn btn-primary" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? '刷新中...' : '刷新'}
+          <button className="btn btn-primary" onClick={loadData} disabled={loading}>
+            {loading ? '加载中...' : '刷新'}
           </button>
         </div>
       </div>
@@ -402,34 +204,29 @@ function Dashboard() {
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-label">{periodLabel}总印量</div>
-          <div className="kpi-value">{stats.totalCount}</div>
-          <div className={`kpi-change ${stats.countChange >= 0 ? 'positive' : 'negative'}`}>
-            {stats.countChange >= 0 ? '↑' : '↓'} {Math.abs(stats.countChange)}% 环比{prevLabel}
+          <div className="kpi-value">{stats?.totalCount || 0}</div>
+          <div className={`kpi-change ${(stats?.countChange || 0) >= 0 ? 'positive' : 'negative'}`}>
+            {(stats?.countChange || 0) >= 0 ? '↑' : '↓'} {Math.abs(stats?.countChange || 0)}% 环比{prevLabel}
           </div>
         </div>
-        <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={handleRevenueClick}>
-          <div className="kpi-label">{periodLabel}预估营收 <span style={{ fontSize: '12px', color: '#3b82f6' }}>(点击明细)</span></div>
-          <div className="kpi-value">¥{stats.totalRevenue.toFixed(2)}</div>
-          <div className={`kpi-change ${stats.revenueChange >= 0 ? 'positive' : 'negative'}`}>
-            {stats.revenueChange >= 0 ? '↑' : '↓'} {Math.abs(stats.revenueChange)}% 环比{prevLabel}
+        <div className="kpi-card">
+          <div className="kpi-label">{periodLabel}预估营收</div>
+          <div className="kpi-value">¥{(stats?.totalRevenue || 0).toFixed(2)}</div>
+          <div className={`kpi-change ${(stats?.revenueChange || 0) >= 0 ? 'positive' : 'negative'}`}>
+            {(stats?.revenueChange || 0) >= 0 ? '↑' : '↓'} {Math.abs(stats?.revenueChange || 0)}% 环比{prevLabel}
           </div>
         </div>
-        <div className="kpi-card" style={{ cursor: 'pointer', position: 'relative' }} onClick={handleProfitClick}>
+        <div className="kpi-card">
           <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {periodLabel}毛利润
-            <span 
-              title="仅包含：营收 - 耗材成本。未包含房租等固定支出。查看净利润请前往「营收管理」页面。"
-              style={{ 
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: '16px', height: '16px', borderRadius: '50%', 
-                background: '#e5e7eb', color: '#6b7280', fontSize: '11px', 
-                cursor: 'help', fontWeight: 600 
-              }}
-            >i</span>
-            <span style={{ fontSize: '12px', color: '#3b82f6' }}>(点击明细)</span>
+            <span title="仅包含：营收 - 耗材成本。未包含房租等固定支出。" style={{ 
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: '16px', height: '16px', borderRadius: '50%', 
+              background: '#e5e7eb', color: '#6b7280', fontSize: '11px', cursor: 'help', fontWeight: 600 
+            }}>i</span>
           </div>
-          <div className="kpi-value">¥{stats.totalProfit.toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: ¥{stats.totalCost.toFixed(2)}</div>
+          <div className="kpi-value">¥{(stats?.totalProfit || 0).toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: ¥{(stats?.totalCost || 0).toFixed(2)}</div>
         </div>
       </div>
 
@@ -439,14 +236,10 @@ function Dashboard() {
           <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>
               {viewMode === 'year' ? '月度印量走势' : viewMode === 'month' ? '本月每日印量' : '近7天印量'}
-              {selectedPrinterName && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>- {selectedPrinterName}</span>}
+              {selectedPrinter && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>- {selectedPrinter}</span>}
             </span>
             {selectedPrinter && (
-              <button 
-                className="btn btn-sm btn-secondary" 
-                onClick={(e) => { e.stopPropagation(); resetSelection(); }}
-                style={{ fontSize: '12px' }}
-              >
+              <button className="btn btn-sm btn-secondary" onClick={(e) => { e.stopPropagation(); resetSelection(); }} style={{ fontSize: '12px' }}>
                 显示全部设备
               </button>
             )}
@@ -457,20 +250,10 @@ function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                  formatter={(value: number | undefined) => [`${value ?? 0} 张`, '']}
-                />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} formatter={(value: number) => [`${value} 张`, '']} />
                 <Legend />
-                {filteredPrinters.map((printer, index) => (
-                  <Bar 
-                    key={printer.id} 
-                    dataKey={printer.alias} 
-                    fill={COLORS[printers.findIndex(p => p.id === printer.id) % COLORS.length]}
-                    radius={[4, 4, 0, 0]}
-                    minPointSize={3}
-                    maxBarSize={50}
-                  />
+                {filteredPrinters.map((name, index) => (
+                  <Bar key={name} dataKey={name} fill={COLORS[printerNames.indexOf(name) % COLORS.length]} radius={[4, 4, 0, 0]} maxBarSize={50} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -485,26 +268,16 @@ function Dashboard() {
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie 
-                    data={pieData as any} 
-                    cx="50%" 
-                    cy="50%" 
-                    labelLine={false}
-                    label={({ name, percent }: { name: string; percent?: number }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
-                    outerRadius={80} 
-                    dataKey="value"
-                    onClick={handlePieClick}
-                    style={{ cursor: 'pointer', outline: 'none' }}
-                    isAnimationActive={false}
-                  >
-                    {pieCellData.map((cellProps) => (
-                      <Cell {...cellProps} />
+                  <Pie data={pieData} cx="50%" cy="50%" labelLine={false}
+                    label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
+                    outerRadius={80} dataKey="value" onClick={handlePieClick} style={{ cursor: 'pointer', outline: 'none' }} isAnimationActive={false}>
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}
+                        stroke={selectedPrinter === entry.name ? '#1f2937' : 'none'} strokeWidth={selectedPrinter === entry.name ? 3 : 0}
+                        opacity={selectedPrinter && selectedPrinter !== entry.name ? 0.4 : 1} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: number | undefined, name: string) => [`${value ?? 0} 张`, name]}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                  />
+                  <Tooltip formatter={(value: number, name: string) => [`${value} 张`, name]} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -514,66 +287,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* 营收明细弹窗 */}
-      {showRevenueModal && (
-        <div className="modal-overlay" onClick={() => setShowRevenueModal(false)}>
-          <div className="modal" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{selectedYear}年{selectedMonth}月营收明细</h2>
-              <button className="modal-close" onClick={() => setShowRevenueModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              {detailLoading ? <div className="loading">加载中...</div> : (
-                <table className="table">
-                  <thead><tr><th>日期</th><th>印量</th><th>营收</th></tr></thead>
-                  <tbody>
-                    {monthlyDetail.filter(d => d.count > 0).map((d) => (
-                      <tr key={d.date}><td>{d.date}</td><td>{d.count}</td><td style={{ color: '#22c55e' }}>¥{d.revenue.toFixed(2)}</td></tr>
-                    ))}
-                    <tr style={{ fontWeight: 'bold', background: '#f3f4f6' }}>
-                      <td>合计</td><td>{detailTotals.count}</td><td style={{ color: '#22c55e' }}>¥{detailTotals.revenue.toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 利润明细弹窗 */}
-      {showProfitModal && (
-        <div className="modal-overlay" onClick={() => setShowProfitModal(false)}>
-          <div className="modal" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{selectedYear}年{selectedMonth}月利润明细</h2>
-              <button className="modal-close" onClick={() => setShowProfitModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              {detailLoading ? <div className="loading">加载中...</div> : (
-                <table className="table">
-                  <thead><tr><th>日期</th><th>印量</th><th>营收</th><th>成本</th><th>利润</th></tr></thead>
-                  <tbody>
-                    {monthlyDetail.filter(d => d.count > 0).map((d) => (
-                      <tr key={d.date}>
-                        <td>{d.date}</td><td>{d.count}</td><td>¥{d.revenue.toFixed(2)}</td>
-                        <td style={{ color: '#ef4444' }}>¥{d.cost.toFixed(2)}</td>
-                        <td style={{ color: d.profit >= 0 ? '#22c55e' : '#ef4444' }}>¥{d.profit.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                    <tr style={{ fontWeight: 'bold', background: '#f3f4f6' }}>
-                      <td>合计</td><td>{detailTotals.count}</td><td>¥{detailTotals.revenue.toFixed(2)}</td>
-                      <td style={{ color: '#ef4444' }}>¥{detailTotals.cost.toFixed(2)}</td>
-                      <td style={{ color: detailTotals.profit >= 0 ? '#22c55e' : '#ef4444' }}>¥{detailTotals.profit.toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

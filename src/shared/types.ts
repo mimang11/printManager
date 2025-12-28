@@ -234,7 +234,6 @@ export interface ElectronAPI {
   
   // 数据查询
   getRecords: (printerId?: string, startDate?: string, endDate?: string) => Promise<DailyRecord[]>;
-  getDashboardStats: () => Promise<DashboardStats>;
   getChartData: (days: number) => Promise<ChartDataPoint[]>;
   getPieChartData: () => Promise<PieChartData[]>;
   getComparisonData: (printerId?: string) => Promise<ComparisonData>;
@@ -275,6 +274,37 @@ export interface ElectronAPI {
   // ========== 系统设置 ==========
   getMonthlyRent: () => Promise<{ success: boolean; data?: number; error?: string }>;
   updateMonthlyRent: (rent: number) => Promise<{ success: boolean; error?: string }>;
+  
+  // ========== 看板数据 (云端) ==========
+  getDashboardStats: (startDate: string, endDate: string, prevStartDate: string, prevEndDate: string) => Promise<{ success: boolean; data?: DashboardStatsData; error?: string }>;
+  getDashboardChart: (dates: string[]) => Promise<{ success: boolean; data?: DashboardChartPoint[]; error?: string }>;
+  getDashboardPie: (startDate: string, endDate: string) => Promise<{ success: boolean; data?: DashboardPieData[]; error?: string }>;
+}
+
+/** 看板统计数据 */
+export interface DashboardStatsData {
+  totalCount: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  prevCount: number;
+  prevRevenue: number;
+  countChange: number;
+  revenueChange: number;
+}
+
+/** 看板图表数据点 */
+export interface DashboardChartPoint {
+  date: string;
+  count: number;
+  [printerName: string]: string | number;
+}
+
+/** 看板饼图数据 */
+export interface DashboardPieData {
+  name: string;
+  value: number;
+  percentage: number;
 }
 
 /** 打印机统计数据 */
