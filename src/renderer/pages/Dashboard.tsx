@@ -176,21 +176,21 @@ function Dashboard() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select className="form-input" style={{ width: '100px' }} value={viewMode} onChange={(e) => setViewMode(e.target.value as any)}>
+          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={viewMode} onChange={(e) => setViewMode(e.target.value as any)}>
             <option value="day">按日</option>
             <option value="month">按月</option>
             <option value="year">按年</option>
           </select>
-          <select className="form-input" style={{ width: '100px' }} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
           </select>
           {viewMode !== 'year' && (
-            <select className="form-input" style={{ width: '80px' }} value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
+            <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
               {months.map(m => <option key={m} value={m}>{m}月</option>)}
             </select>
           )}
           {viewMode === 'day' && (
-            <select className="form-input" style={{ width: '80px' }} value={selectedDay} onChange={(e) => setSelectedDay(Number(e.target.value))}>
+            <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={selectedDay} onChange={(e) => setSelectedDay(Number(e.target.value))}>
               {days.map(d => <option key={d} value={d}>{d}日</option>)}
             </select>
           )}

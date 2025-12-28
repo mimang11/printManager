@@ -209,15 +209,11 @@ function RevenueManager() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
           </select>
-          <select className="form-input" style={{ width: '80px', minWidth: '80px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {months.map(m => <option key={m} value={m}>{m}月</option>)}
-          </select>
-          <select className="form-input" style={{ width: '80px', minWidth: '80px' }} value={filterDay ?? ''} onChange={(e) => setFilterDay(e.target.value ? Number(e.target.value) : null)}>
-            <option value="">全部</option>
-            {days.map(d => <option key={d} value={d}>{d}日</option>)}
           </select>
           <button className="btn btn-primary" onClick={loadData} disabled={loading}>
             {loading ? '加载中...' : '刷新'}
@@ -235,28 +231,27 @@ function RevenueManager() {
       {/* 月度汇总卡片 */}
       <div className="kpi-grid" style={{ marginBottom: '20px' }}>
         <div className="kpi-card">
-          <div className="kpi-label">{filterDay ? `${month}月${filterDay}日营业额` : '本月总营业额'}</div>
+          <div className="kpi-label">本月总营业额</div>
           <div className="kpi-value">¥{(monthTotals.totalRevenue + monthTotals.otherIncome).toFixed(2)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">{filterDay ? '当日成本' : '本月总成本'}</div>
-          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + (filterDay ? dailyRent : fixedCost)).toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{(filterDay ? dailyRent : fixedCost).toFixed(0)}</div>
+          <div className="kpi-label">本月总成本</div>
+          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + fixedCost).toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">{filterDay ? '当日其他收入' : '本月其他收入'}</div>
+          <div className="kpi-label">本月其他收入</div>
           <div className="kpi-value" style={{ color: '#22c55e' }}>¥{monthTotals.otherIncome.toFixed(2)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">{filterDay ? '当日纯利润' : '本月纯利润'}</div>
-          <div className="kpi-value" style={{ color: (filterDay ? monthTotals.totalRevenue + monthTotals.otherIncome - monthTotals.totalCost - dailyRent : currentProfit) >= 0 ? '#22c55e' : '#ef4444' }}>
-            ¥{(filterDay ? monthTotals.totalRevenue + monthTotals.otherIncome - monthTotals.totalCost - dailyRent : currentProfit).toFixed(2)}
+          <div className="kpi-label">本月纯利润</div>
+          <div className="kpi-value" style={{ color: currentProfit >= 0 ? '#22c55e' : '#ef4444' }}>
+            ¥{currentProfit.toFixed(2)}
           </div>
         </div>
       </div>
 
       {/* 盈亏平衡分析 */}
-      {!filterDay && (
       <div className="card" style={{ marginBottom: '20px' }}>
         <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>📊 盈亏平衡分析</span>
@@ -336,7 +331,6 @@ function RevenueManager() {
           </div>
         </div>
       </div>
-      )}
 
       {/* 每日明细表格 */}
       <div className="card">
