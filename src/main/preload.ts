@@ -135,6 +135,9 @@ const electronAPI: ElectronAPI = {
   
   // 添加云端其他收入
   addCloudOtherRevenue: (data) => ipcRenderer.invoke('add-cloud-other-revenue', data),
+  
+  // 更新损耗记录
+  updateCloudWaste: (machineIP, wasteDate, wasteCount) => ipcRenderer.invoke('update-cloud-waste', machineIP, wasteDate, wasteCount),
 };
 
 // 使用 contextBridge 安全地暴露 API

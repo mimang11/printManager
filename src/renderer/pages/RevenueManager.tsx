@@ -22,6 +22,14 @@ function RevenueManager() {
   const [otherAmount, setOtherAmount] = useState(0);
   const [otherNote, setOtherNote] = useState('');
 
+  // 损耗上报弹窗
+  const [showWasteModal, setShowWasteModal] = useState(false);
+  const [wasteDate, setWasteDate] = useState('');
+  const [wastePrinterId, setWastePrinterId] = useState('');
+  const [wastePrinterName, setWastePrinterName] = useState('');
+  const [wasteMaxCount, setWasteMaxCount] = useState(0);
+  const [wasteCount, setWasteCount] = useState(0);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -59,6 +67,31 @@ function RevenueManager() {
       }
     } catch (err: any) {
       alert('添加失败: ' + err.message);
+    }
+  };
+
+  // 打开损耗上报弹窗
+  const openWasteModal = (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number) => {
+    setWasteDate(date);
+    setWastePrinterId(printerId);
+    setWastePrinterName(printerName);
+    setWasteMaxCount(maxCount);
+    setWasteCount(currentWaste);
+    setShowWasteModal(true);
+  };
+
+  // 提交损耗
+  const handleSubmitWaste = async () => {
+    try {
+      const result = await window.electronAPI.updateCloudWaste(wastePrinterId, wasteDate, wasteCount);
+      if (result.success) {
+        setShowWasteModal(false);
+        loadData();
+      } else {
+        alert('更新失败: ' + result.error);
+      }
+    } catch (err: any) {
+      alert('更新失败: ' + err.message);
     }
   };
 
@@ -351,6 +384,11 @@ function RevenueManager() {
                         </td>
                         <td style={{ fontSize: '13px' }}>
                           <span style={{ color: '#6b7280' }}>{p.count}张</span>
+                          {p.wasteCount > 0 && (
+                            <span style={{ marginLeft: '4px', color: '#ef4444', fontSize: '12px' }}>
+                              (-{p.wasteCount}损耗)
+                            </span>
+                          )}
                           <span style={{ marginLeft: '8px', color: '#22c55e' }}>¥{p.revenue.toFixed(2)}</span>
                         </td>
                         <td style={{ fontSize: '13px', color: '#ef4444' }}>¥{p.cost.toFixed(2)}</td>
@@ -358,7 +396,21 @@ function RevenueManager() {
                         <td style={{ fontSize: '13px', color: p.profit >= 0 ? '#22c55e' : '#ef4444' }}>
                           ¥{p.profit.toFixed(2)}
                         </td>
-                        <td></td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {p.count > 0 && (
+                            <button 
+                              className="btn btn-sm" 
+                              style={{ 
+                                background: p.wasteCount > 0 ? '#fef3c7' : '#f3f4f6',
+                                color: p.wasteCount > 0 ? '#d97706' : '#6b7280',
+                                border: 'none', fontSize: '12px', padding: '4px 8px'
+                              }}
+                              onClick={() => openWasteModal(day.date, p.printerId, p.printerName, p.count, p.wasteCount)}
+                            >
+                              🗑️ {p.wasteCount > 0 ? `损耗:${p.wasteCount}` : '损耗'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </React.Fragment>
@@ -392,6 +444,45 @@ function RevenueManager() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>取消</button>
               <button className="btn btn-primary" onClick={handleAddOther}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 损耗上报弹窗 */}
+      {showWasteModal && (
+        <div className="modal-overlay" onClick={() => setShowWasteModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">🗑️ 上报损耗 - {wastePrinterName}</h2>
+              <button className="modal-close" onClick={() => setShowWasteModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>日期: {wasteDate}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>物理印量: {wasteMaxCount} 张</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">损耗数量 (张)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max={wasteMaxCount}
+                  className="form-input" 
+                  value={wasteCount}
+                  onChange={(e) => setWasteCount(Math.min(Math.max(0, parseInt(e.target.value) || 0), wasteMaxCount))} 
+                />
+                <p className="form-hint">卡纸、错打等不产生收益的打印数量 (最大: {wasteMaxCount})</p>
+              </div>
+              <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', fontSize: '13px' }}>
+                <strong>计算说明:</strong><br/>
+                有效印量 = {wasteMaxCount} - {wasteCount} = <strong>{wasteMaxCount - wasteCount}</strong> 张<br/>
+                营收按有效印量计算，成本按物理印量计算
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowWasteModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSubmitWaste}>保存</button>
             </div>
           </div>
         </div>

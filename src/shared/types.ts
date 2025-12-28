@@ -270,6 +270,7 @@ export interface ElectronAPI {
   // ========== 云端营收管理 ==========
   getCloudMonthlyRevenue: (year: number, month: number) => Promise<{ success: boolean; data?: CloudMonthlyRevenueData[]; error?: string }>;
   addCloudOtherRevenue: (data: { date: string; amount: number; description: string; category: string }) => Promise<{ success: boolean; error?: string }>;
+  updateCloudWaste: (machineIP: string, wasteDate: string, wasteCount: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 /** 打印机统计数据 */
@@ -296,6 +297,7 @@ export interface CloudMonthlyRevenueData {
     printerId: string;
     printerName: string;
     count: number;
+    wasteCount: number;
     revenue: number;
     cost: number;
     profit: number;
