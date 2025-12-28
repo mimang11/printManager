@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -735,6 +735,36 @@ ipcMain.handle('auto-add-printers-from-logs', async () => {
     return { success: true, added: addedCount, message: `成功添加 ${addedCount} 台打印机` };
   } catch (error: any) {
     console.error('一键添加打印机失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================
+// IPC 处理器 - 云端营收管理
+// ============================================
+
+/**
+ * 获取云端月度营收数据
+ */
+ipcMain.handle('get-cloud-monthly-revenue', async (_, year: number, month: number) => {
+  try {
+    const data = await getCloudMonthlyRevenueData(year, month);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('获取云端月度营收失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 添加云端其他收入
+ */
+ipcMain.handle('add-cloud-other-revenue', async (_, data: { date: string; amount: number; description: string; category: string }) => {
+  try {
+    await addCloudOtherRevenue(data);
+    return { success: true };
+  } catch (error: any) {
+    console.error('添加云端其他收入失败:', error);
     return { success: false, error: error.message };
   }
 });

@@ -127,6 +127,14 @@ const electronAPI: ElectronAPI = {
   
   // 一键添加 printer_logs 表中的打印机
   autoAddPrintersFromLogs: () => ipcRenderer.invoke('auto-add-printers-from-logs'),
+
+  // ========== 云端营收管理 ==========
+  
+  // 获取云端月度营收数据
+  getCloudMonthlyRevenue: (year, month) => ipcRenderer.invoke('get-cloud-monthly-revenue', year, month),
+  
+  // 添加云端其他收入
+  addCloudOtherRevenue: (data) => ipcRenderer.invoke('add-cloud-other-revenue', data),
 };
 
 // 使用 contextBridge 安全地暴露 API

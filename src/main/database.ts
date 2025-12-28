@@ -485,3 +485,122 @@ export async function getPrintStatsByDateRange(startDate: string, endDate: strin
   
   return stats;
 }
+
+// ============================================
+// 营收管理相关函数
+// ============================================
+
+/** 云端月度营收数据 */
+export interface CloudMonthlyRevenueData {
+  date: string;
+  printers: {
+    printerId: string;
+    printerName: string;
+    count: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }[];
+  otherIncome: number;
+  otherIncomeNote: string;
+  netProfit: number;
+  rent: number;
+}
+
+/** 获取月度营收数据 (从云端) */
+export async function getCloudMonthlyRevenueData(year: number, month: number): Promise<CloudMonthlyRevenueData[]> {
+  const db = getDatabase();
+  
+  // 构建日期范围
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  
+  // 获取所有打印机配置 (用于成本/售价计算)
+  const printers = await getAllPrinters();
+  const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
+  
+  // 获取日期范围内的打印日志
+  const logsResult = await db.execute({
+    sql: `SELECT log_date, machine_ip, machine_name, print_count 
+          FROM printer_logs 
+          WHERE log_date >= ? AND log_date <= ? 
+          ORDER BY log_date, machine_name`,
+    args: [startDate, endDate],
+  });
+  
+  // 获取其他收入
+  const otherResult = await db.execute({
+    sql: `SELECT revenue_date, amount, description 
+          FROM other_revenues 
+          WHERE revenue_date >= ? AND revenue_date <= ?`,
+    args: [startDate, endDate],
+  });
+  
+  // 按日期分组其他收入
+  const otherIncomeMap = new Map<string, { amount: number; note: string }>();
+  for (const row of otherResult.rows) {
+    const date = row.revenue_date as string;
+    const existing = otherIncomeMap.get(date) || { amount: 0, note: '' };
+    existing.amount += row.amount as number;
+    if (row.description) {
+      existing.note = existing.note ? `${existing.note}; ${row.description}` : row.description as string;
+    }
+    otherIncomeMap.set(date, existing);
+  }
+  
+  // 按日期分组打印日志
+  const dailyData = new Map<string, CloudMonthlyRevenueData>();
+  
+  for (const row of logsResult.rows) {
+    const date = row.log_date as string;
+    const machine_ip = row.machine_ip as string;
+    const machine_name = row.machine_name as string;
+    const print_count = row.print_count as number;
+    
+    const printer = printerMap.get(machine_ip);
+    const cost_per_page = printer?.cost_per_page || 0.05;
+    const price_per_page = printer?.price_per_page || 0.5;
+    
+    const revenue = print_count * price_per_page;
+    const cost = print_count * cost_per_page;
+    const profit = revenue - cost;
+    
+    if (!dailyData.has(date)) {
+      const otherInfo = otherIncomeMap.get(date) || { amount: 0, note: '' };
+      dailyData.set(date, {
+        date, printers: [], otherIncome: otherInfo.amount,
+        otherIncomeNote: otherInfo.note, netProfit: 0, rent: 0,
+      });
+    }
+    
+    dailyData.get(date)!.printers.push({
+      printerId: machine_ip, printerName: machine_name,
+      count: print_count, revenue, cost, profit,
+    });
+  }
+  
+  // 计算每日净利润
+  for (const [, dayData] of dailyData) {
+    const totalRevenue = dayData.printers.reduce((sum, p) => sum + p.revenue, 0);
+    const totalCost = dayData.printers.reduce((sum, p) => sum + p.cost, 0);
+    dayData.netProfit = totalRevenue - totalCost + dayData.otherIncome;
+  }
+  
+  return Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** 添加其他收入 (云端) */
+export async function addCloudOtherRevenue(data: { date: string; amount: number; description: string; category: string }): Promise<void> {
+  const db = getDatabase();
+  await db.execute({
+    sql: `INSERT INTO other_revenues (revenue_date, amount, description, category) VALUES (?, ?, ?, ?)`,
+    args: [data.date, data.amount, data.description, data.category],
+  });
+}
+
+/** 删除其他收入 (云端) */
+export async function deleteCloudOtherRevenue(id: number): Promise<void> {
+  const db = getDatabase();
+  await db.execute({ sql: 'DELETE FROM other_revenues WHERE id = ?', args: [id] });
+}

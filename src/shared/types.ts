@@ -266,6 +266,10 @@ export interface ElectronAPI {
   checkIPExists: (machineIP: string) => Promise<{ success: boolean; data?: { exists: boolean; machine_name?: string }; error?: string }>;
   getAllPrinterStats: () => Promise<{ success: boolean; data?: PrinterStatsData[]; error?: string }>;
   autoAddPrintersFromLogs: () => Promise<{ success: boolean; added?: number; message?: string; error?: string }>;
+  
+  // ========== 云端营收管理 ==========
+  getCloudMonthlyRevenue: (year: number, month: number) => Promise<{ success: boolean; data?: CloudMonthlyRevenueData[]; error?: string }>;
+  addCloudOtherRevenue: (data: { date: string; amount: number; description: string; category: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 /** 打印机统计数据 */
@@ -283,6 +287,23 @@ export interface PrinterStatsData {
   month_revenue: number;
   month_cost: number;
   month_profit: number;
+}
+
+/** 云端月度营收数据 */
+export interface CloudMonthlyRevenueData {
+  date: string;
+  printers: {
+    printerId: string;
+    printerName: string;
+    count: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }[];
+  otherIncome: number;
+  otherIncomeNote: string;
+  netProfit: number;
+  rent: number;
 }
 
 // 扩展 Window 接口，添加 electronAPI

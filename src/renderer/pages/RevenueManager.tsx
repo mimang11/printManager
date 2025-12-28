@@ -1,43 +1,40 @@
 /**
- * RevenueManager 页面 - 营收管理
- * 优化版：可折叠机器明细、悬浮提示
+ * RevenueManager 页面 - 营收管理 (云端版)
+ * 从 Turso 云端数据库获取营收数据
  */
 import React, { useState, useEffect } from 'react';
-import { MonthlyRevenueData } from '../../shared/types';
+import { CloudMonthlyRevenueData } from '../../shared/types';
 
 function RevenueManager() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [revenueData, setRevenueData] = useState<MonthlyRevenueData[]>([]);
+  const [revenueData, setRevenueData] = useState<CloudMonthlyRevenueData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [includeFixedCost, setIncludeFixedCost] = useState(false); // 固定成本分摊开关
+  const [includeFixedCost, setIncludeFixedCost] = useState(false);
   
   // 其他收入弹窗
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [otherAmount, setOtherAmount] = useState(0);
   const [otherNote, setOtherNote] = useState('');
-  const [importing, setImporting] = useState(false);
-
-  // 损耗上报弹窗
-  const [showWasteModal, setShowWasteModal] = useState(false);
-  const [wasteDate, setWasteDate] = useState('');
-  const [wastePrinterId, setWastePrinterId] = useState('');
-  const [wastePrinterName, setWastePrinterName] = useState('');
-  const [wasteMaxCount, setWasteMaxCount] = useState(0);
-  const [wasteCount, setWasteCount] = useState(0);
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await window.electronAPI.getMonthlyRevenueData(year, month);
-      setRevenueData(data);
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error('加载失败:', error);
+      const result = await window.electronAPI.getCloudMonthlyRevenue(year, month);
+      if (result.success && result.data) {
+        setRevenueData(result.data);
+        setLastUpdate(new Date());
+      } else {
+        setError(result.error || '加载失败');
+      }
+    } catch (err: any) {
+      setError(err.message || '加载失败');
     } finally {
       setLoading(false);
     }
@@ -48,84 +45,31 @@ function RevenueManager() {
   const handleAddOther = async () => {
     if (!selectedDate) return;
     try {
-      await window.electronAPI.addOtherRevenue({
+      const result = await window.electronAPI.addCloudOtherRevenue({
         date: selectedDate, amount: otherAmount,
         description: otherNote, category: '其他',
       });
-      setShowAddModal(false);
-      setOtherAmount(0);
-      setOtherNote('');
-      loadData();
-    } catch (error) {
-      alert('添加失败: ' + error);
-    }
-  };
-
-  const handleImportHistory = async () => {
-    setImporting(true);
-    try {
-      const result = await window.electronAPI.importHistoryData();
       if (result.success) {
-        let msg = result.message;
-        if (result.matchedPrinters && result.matchedPrinters.length > 0) {
-          msg += `\n\n✅ 已录入的设备: ${result.matchedPrinters.join('、')}`;
-        }
-        if (result.unmatchedHeaders && result.unmatchedHeaders.length > 0) {
-          msg += `\n\n❌ 未匹配的表头(已跳过): ${result.unmatchedHeaders.join('、')}`;
-        }
-        alert(msg);
+        setShowAddModal(false);
+        setOtherAmount(0);
+        setOtherNote('');
         loadData();
       } else {
-        if (result.message !== '已取消') {
-          alert(result.message);
-        }
+        alert('添加失败: ' + result.error);
       }
-    } catch (error) {
-      alert('导入失败: ' + error);
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // 打开损耗上报弹窗
-  const openWasteModal = (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number) => {
-    setWasteDate(date);
-    setWastePrinterId(printerId);
-    setWastePrinterName(printerName);
-    setWasteMaxCount(maxCount);
-    setWasteCount(currentWaste);
-    setShowWasteModal(true);
-  };
-
-  // 提交损耗
-  const handleSubmitWaste = async () => {
-    try {
-      await window.electronAPI.updateWasteCount(wasteDate, wastePrinterId, wasteCount);
-      setShowWasteModal(false);
-      loadData();
-    } catch (error) {
-      alert('更新失败: ' + error);
+    } catch (err: any) {
+      alert('添加失败: ' + err.message);
     }
   };
 
   const toggleRow = (date: string) => {
     const newSet = new Set(expandedRows);
-    if (newSet.has(date)) {
-      newSet.delete(date);
-    } else {
-      newSet.add(date);
-    }
+    newSet.has(date) ? newSet.delete(date) : newSet.add(date);
     setExpandedRows(newSet);
   };
 
-  const expandAll = () => {
-    const allDates = revenueData.filter(d => d.printers.some(p => p.count > 0) || d.otherIncome !== 0).map(d => d.date);
-    setExpandedRows(new Set(allDates));
-  };
-
-  const collapseAll = () => {
-    setExpandedRows(new Set());
-  };
+  const expandAll = () => setExpandedRows(new Set(filteredData.map(d => d.date)));
+  const collapseAll = () => setExpandedRows(new Set());
 
   // 计算月度汇总
   const monthTotals = revenueData.reduce((acc, day) => {
@@ -144,36 +88,23 @@ function RevenueManager() {
 
   // 盈亏平衡分析
   const avgProfitPerPage = monthTotals.totalCount > 0 
-    ? (monthTotals.totalRevenue - monthTotals.totalCost) / monthTotals.totalCount 
-    : 0;
-  const fixedCost = monthTotals.totalRent; // 固定成本（房租）
+    ? (monthTotals.totalRevenue - monthTotals.totalCost) / monthTotals.totalCount : 0;
+  const fixedCost = monthTotals.totalRent;
   const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - fixedCost + monthTotals.otherIncome;
   const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil(fixedCost / avgProfitPerPage) : 0;
-  const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 
-    ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) 
-    : 0;
+  const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) : 0;
   const breakEvenProgress = breakEvenPages > 0 ? Math.min((monthTotals.totalCount / breakEvenPages) * 100, 100) : 0;
   const isBreakEven = currentProfit >= 0;
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
-  // Helper: 计算每日分摊的固定成本
-  const getDailyFixedCost = (monthlyFixedCost: number, daysInMonth: number) => {
-    return monthlyFixedCost / daysInMonth;
-  };
-
-  // 获取当月天数
   const daysInMonth = new Date(year, month, 0).getDate();
-  const dailyRent = getDailyFixedCost(fixedCost, daysInMonth);
+  const dailyRent = fixedCost / daysInMonth;
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
-  };
+  const formatTimestamp = (date: Date) => date.toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
 
-  // 悬浮提示样式
   const tooltipStyle: React.CSSProperties = {
     position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
     background: '#1f2937', color: 'white', padding: '8px 12px', borderRadius: '8px',
@@ -187,7 +118,7 @@ function RevenueManager() {
     <div style={{ position: 'relative', minHeight: '100%' }}>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <h1 className="page-title">营收管理</h1>
+          <h1 className="page-title">营收管理 <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(云端)</span></h1>
           {lastUpdate && (
             <span style={{ fontSize: '13px', color: '#6b7280', background: '#f3f4f6',
               padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -203,14 +134,18 @@ function RevenueManager() {
           <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {months.map(m => <option key={m} value={m}>{m}月</option>)}
           </select>
-          <button className="btn btn-secondary" onClick={handleImportHistory} disabled={importing}>
-            {importing ? '导入中...' : '📥 导入历史数据'}
-          </button>
           <button className="btn btn-primary" onClick={loadData} disabled={loading}>
             {loading ? '加载中...' : '刷新'}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '16px' }}>
+          {error}
+          <button onClick={loadData} style={{ marginLeft: '12px' }}>重试</button>
+        </div>
+      )}
 
       {/* 月度汇总卡片 */}
       <div className="kpi-grid" style={{ marginBottom: '20px' }}>
@@ -416,11 +351,6 @@ function RevenueManager() {
                         </td>
                         <td style={{ fontSize: '13px' }}>
                           <span style={{ color: '#6b7280' }}>{p.count}张</span>
-                          {(p.wasteCount || 0) > 0 && (
-                            <span style={{ marginLeft: '4px', color: '#ef4444', fontSize: '12px' }}>
-                              (-{p.wasteCount}损耗)
-                            </span>
-                          )}
                           <span style={{ marginLeft: '8px', color: '#22c55e' }}>¥{p.revenue.toFixed(2)}</span>
                         </td>
                         <td style={{ fontSize: '13px', color: '#ef4444' }}>¥{p.cost.toFixed(2)}</td>
@@ -428,21 +358,7 @@ function RevenueManager() {
                         <td style={{ fontSize: '13px', color: p.profit >= 0 ? '#22c55e' : '#ef4444' }}>
                           ¥{p.profit.toFixed(2)}
                         </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          {p.count > 0 && (
-                            <button 
-                              className="btn btn-sm" 
-                              style={{ 
-                                background: (p.wasteCount || 0) > 0 ? '#fef3c7' : '#f3f4f6',
-                                color: (p.wasteCount || 0) > 0 ? '#d97706' : '#6b7280',
-                                border: 'none', fontSize: '12px', padding: '4px 8px'
-                              }}
-                              onClick={() => openWasteModal(day.date, p.printerId, p.printerName, p.count, p.wasteCount || 0)}
-                            >
-                              🗑️ {(p.wasteCount || 0) > 0 ? `损耗:${p.wasteCount}` : '损耗'}
-                            </button>
-                          )}
-                        </td>
+                        <td></td>
                       </tr>
                     ))}
                   </React.Fragment>
@@ -476,45 +392,6 @@ function RevenueManager() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>取消</button>
               <button className="btn btn-primary" onClick={handleAddOther}>保存</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 损耗上报弹窗 */}
-      {showWasteModal && (
-        <div className="modal-overlay" onClick={() => setShowWasteModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">🗑️ 上报损耗 - {wastePrinterName}</h2>
-              <button className="modal-close" onClick={() => setShowWasteModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>日期: {wasteDate}</div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>物理印量: {wasteMaxCount} 张</div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">损耗数量 (张)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max={wasteMaxCount}
-                  className="form-input" 
-                  value={wasteCount}
-                  onChange={(e) => setWasteCount(Math.min(Math.max(0, parseInt(e.target.value) || 0), wasteMaxCount))} 
-                />
-                <p className="form-hint">卡纸、错打等不产生收益的打印数量 (最大: {wasteMaxCount})</p>
-              </div>
-              <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', fontSize: '13px' }}>
-                <strong>计算说明:</strong><br/>
-                有效印量 = {wasteMaxCount} - {wasteCount} = <strong>{wasteMaxCount - wasteCount}</strong> 张<br/>
-                营收按有效印量计算，成本按物理印量计算
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowWasteModal(false)}>取消</button>
-              <button className="btn btn-primary" onClick={handleSubmitWaste}>保存</button>
             </div>
           </div>
         </div>
