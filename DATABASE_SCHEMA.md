@@ -19,22 +19,15 @@ CREATE TABLE printer_logs (
   log_date TEXT NOT NULL,         -- 日期 YYYY-MM-DD
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
+-- 唯一约束
+CREATE UNIQUE INDEX idx_machine_date ON printer_logs(machine_ip, log_date);
 -- 索引
 CREATE INDEX idx_printer_logs_date ON printer_logs(log_date);
 CREATE INDEX idx_printer_logs_machine ON printer_logs(machine_name);
 CREATE UNIQUE INDEX idx_printer_logs_unique ON printer_logs(machine_name, log_date);
 ```
 
-**字段说明：**
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INTEGER | 自增主键 |
-| machine_name | TEXT | 打印机名称（别名） |
-| machine_ip | TEXT | 打印机 IP 地址 |
-| print_count | INTEGER | 当日打印数量 |
-| log_date | TEXT | 日期，格式 YYYY-MM-DD |
-| created_at | DATETIME | 记录创建时间 |
+**字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | machine_name | TEXT | 打印机名称（别名） | | machine_ip | TEXT | 打印机 IP 地址 | | print_count | INTEGER | 当日打印数量 | | log_date | TEXT | 日期，格式 YYYY-MM-DD | | created_at | DATETIME | 记录创建时间 |
 
 ---
 
@@ -59,18 +52,7 @@ CREATE TABLE printers (
 CREATE UNIQUE INDEX idx_printers_name ON printers(machine_name);
 ```
 
-**字段说明：**
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| id | INTEGER | - | 自增主键 |
-| machine_name | TEXT | - | 打印机名称（别名），唯一标识 |
-| machine_ip | TEXT | - | 打印机 IP 地址 |
-| printer_type | TEXT | 'mono' | 打印机类型：mono=黑白机, color=彩机 |
-| cost_per_page | REAL | 0.05 | 单张成本（元） |
-| price_per_page | REAL | 0.5 | 单张售价（元） |
-| status | TEXT | 'offline' | 打印机状态 |
-| created_at | DATETIME | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | DATETIME | CURRENT_TIMESTAMP | 更新时间 |
+**字段说明：** | 字段 | 类型 | 默认值 | 说明 | |------|------|--------|------| | id | INTEGER | - | 自增主键 | | machine_name | TEXT | - | 打印机名称（别名），唯一标识 | | machine_ip | TEXT | - | 打印机 IP 地址 | | printer_type | TEXT | 'mono' | 打印机类型：mono=黑白机, color=彩机 | | cost_per_page | REAL | 0.05 | 单张成本（元） | | price_per_page | REAL | 0.5 | 单张售价（元） | | status | TEXT | 'offline' | 打印机状态 | | created_at | DATETIME | CURRENT_TIMESTAMP | 创建时间 | | updated_at | DATETIME | CURRENT_TIMESTAMP | 更新时间 |
 
 ---
 
@@ -92,15 +74,7 @@ CREATE TABLE other_revenues (
 CREATE INDEX idx_other_revenues_date ON other_revenues(revenue_date);
 ```
 
-**字段说明：**
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INTEGER | 自增主键 |
-| revenue_date | TEXT | 日期，格式 YYYY-MM-DD |
-| amount | REAL | 金额（元） |
-| description | TEXT | 描述/备注 |
-| category | TEXT | 分类，默认"其他" |
-| created_at | DATETIME | 创建时间 |
+**字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | revenue_date | TEXT | 日期，格式 YYYY-MM-DD | | amount | REAL | 金额（元） | | description | TEXT | 描述/备注 | | category | TEXT | 分类，默认"其他" | | created_at | DATETIME | 创建时间 |
 
 ---
 
@@ -164,6 +138,7 @@ TURSO_AUTH_TOKEN=your-auth-token-here
 ```
 
 获取方式：
+
 1. 登录 [Turso 控制台](https://turso.tech/)
 2. 选择数据库 `printbase`
 3. 点击 "Get connection URL" 获取 URL 和 Token

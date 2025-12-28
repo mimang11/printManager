@@ -116,6 +116,14 @@ const electronAPI: ElectronAPI = {
   
   // 删除云端打印机
   deleteCloudPrinter: (id) => ipcRenderer.invoke('delete-cloud-printer', id),
+
+  // ========== IP 检查和统计 ==========
+  
+  // 检查 IP 是否存在于 printer_logs
+  checkIPExists: (machineIP) => ipcRenderer.invoke('check-ip-exists', machineIP),
+  
+  // 获取所有打印机统计数据
+  getAllPrinterStats: () => ipcRenderer.invoke('get-all-printer-stats'),
 };
 
 // 使用 contextBridge 安全地暴露 API

@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -627,11 +627,20 @@ ipcMain.handle('get-cloud-printer-configs', async () => {
 });
 
 /**
- * 添加云端打印机
+ * 添加云端打印机 - 根据 IP 是否存在于 printer_logs 决定状态
  */
 ipcMain.handle('add-cloud-printer', async (_, printerData: Omit<DBPrinter, 'id' | 'created_at' | 'updated_at'>) => {
   try {
-    const printer = await dbAddPrinter(printerData);
+    // 检查 IP 是否存在于 printer_logs 中
+    const ipCheck = await checkIPExistsInLogs(printerData.machine_ip);
+    
+    // 如果 IP 存在于 printer_logs，状态为 online，否则为 offline
+    const status = ipCheck.exists ? 'online' : 'offline';
+    
+    const printer = await dbAddPrinter({
+      ...printerData,
+      status,
+    });
     return { success: true, data: printer };
   } catch (error: any) {
     console.error('添加云端打印机失败:', error);
@@ -661,6 +670,31 @@ ipcMain.handle('delete-cloud-printer', async (_, id: number) => {
     return { success: true, data: result };
   } catch (error: any) {
     console.error('删除云端打印机失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 检查 IP 是否存在于 printer_logs 中
+ */
+ipcMain.handle('check-ip-exists', async (_, machineIP: string) => {
+  try {
+    const result = await checkIPExistsInLogs(machineIP);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取所有打印机的统计数据
+ */
+ipcMain.handle('get-all-printer-stats', async () => {
+  try {
+    const stats = await getAllPrinterStats();
+    return { success: true, data: stats };
+  } catch (error: any) {
+    console.error('获取打印机统计失败:', error);
     return { success: false, error: error.message };
   }
 });

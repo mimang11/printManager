@@ -261,6 +261,27 @@ export interface ElectronAPI {
   addCloudPrinter: (printer: Omit<CloudPrinterConfig, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; data?: CloudPrinterConfig; error?: string }>;
   updateCloudPrinter: (id: number, printer: Partial<CloudPrinterConfig>) => Promise<{ success: boolean; data?: CloudPrinterConfig; error?: string }>;
   deleteCloudPrinter: (id: number) => Promise<{ success: boolean; data?: boolean; error?: string }>;
+  
+  // ========== IP 检查和统计 ==========
+  checkIPExists: (machineIP: string) => Promise<{ success: boolean; data?: { exists: boolean; machine_name?: string }; error?: string }>;
+  getAllPrinterStats: () => Promise<{ success: boolean; data?: PrinterStatsData[]; error?: string }>;
+}
+
+/** 打印机统计数据 */
+export interface PrinterStatsData {
+  printer: CloudPrinterConfig;
+  total_prints: number;
+  today_prints: number;
+  month_prints: number;
+  total_cost: number;
+  total_revenue: number;
+  total_profit: number;
+  today_revenue: number;
+  today_cost: number;
+  today_profit: number;
+  month_revenue: number;
+  month_cost: number;
+  month_profit: number;
 }
 
 // 扩展 Window 接口，添加 electronAPI

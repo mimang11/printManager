@@ -286,3 +286,188 @@ export async function getDailyPrintCounts(startDate: string, endDate: string): P
 export function closeDatabase(): void {
   if (client) { client.close(); client = null; }
 }
+
+// ============================================
+// 打印机与日志关联查询 (通过 IP 地址)
+// ============================================
+
+/** 根据 IP 地址获取打印机配置 */
+export async function getPrinterByIP(machineIP: string): Promise<DBPrinter | null> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: 'SELECT * FROM printers WHERE machine_ip = ?',
+    args: [machineIP],
+  });
+  
+  if (result.rows.length === 0) return null;
+  
+  const row = result.rows[0];
+  return {
+    id: row.id as number,
+    machine_name: row.machine_name as string,
+    machine_ip: row.machine_ip as string,
+    printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
+    cost_per_page: row.cost_per_page as number,
+    price_per_page: row.price_per_page as number,
+    status: (row.status as 'online' | 'offline' | 'error') || 'offline',
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+/** 打印机统计数据 */
+export interface PrinterStats {
+  printer: DBPrinter;
+  total_prints: number;      // 总打印量
+  today_prints: number;      // 今日打印量
+  month_prints: number;      // 本月打印量
+  total_cost: number;        // 总成本
+  total_revenue: number;     // 总收入
+  total_profit: number;      // 总利润
+  today_revenue: number;     // 今日收入
+  today_cost: number;        // 今日成本
+  today_profit: number;      // 今日利润
+  month_revenue: number;     // 本月收入
+  month_cost: number;        // 本月成本
+  month_profit: number;      // 本月利润
+}
+
+/** 获取打印机统计数据 (通过 IP 关联 printer_logs) */
+export async function getPrinterStats(printerId: number): Promise<PrinterStats | null> {
+  const db = getDatabase();
+  
+  // 获取打印机配置
+  const printerResult = await db.execute({ sql: 'SELECT * FROM printers WHERE id = ?', args: [printerId] });
+  if (printerResult.rows.length === 0) return null;
+  
+  const row = printerResult.rows[0];
+  const printer: DBPrinter = {
+    id: row.id as number,
+    machine_name: row.machine_name as string,
+    machine_ip: row.machine_ip as string,
+    printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
+    cost_per_page: row.cost_per_page as number,
+    price_per_page: row.price_per_page as number,
+    status: (row.status as 'online' | 'offline' | 'error') || 'offline',
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+  
+  const today = new Date().toISOString().split('T')[0];
+  const monthStart = today.substring(0, 7) + '-01';
+  
+  // 通过 IP 地址查询关联的打印日志 - 总打印量
+  const totalResult = await db.execute({
+    sql: 'SELECT COALESCE(SUM(print_count), 0) as total FROM printer_logs WHERE machine_ip = ?',
+    args: [printer.machine_ip],
+  });
+  const total_prints = Number(totalResult.rows[0]?.total) || 0;
+  
+  // 今日打印量
+  const todayResult = await db.execute({
+    sql: 'SELECT COALESCE(SUM(print_count), 0) as total FROM printer_logs WHERE machine_ip = ? AND log_date = ?',
+    args: [printer.machine_ip, today],
+  });
+  const today_prints = Number(todayResult.rows[0]?.total) || 0;
+  
+  // 本月打印量
+  const monthResult = await db.execute({
+    sql: 'SELECT COALESCE(SUM(print_count), 0) as total FROM printer_logs WHERE machine_ip = ? AND log_date >= ?',
+    args: [printer.machine_ip, monthStart],
+  });
+  const month_prints = Number(monthResult.rows[0]?.total) || 0;
+  
+  // 计算成本、收入、利润
+  const cost_per_page = printer.cost_per_page;
+  const price_per_page = printer.price_per_page;
+  
+  return {
+    printer,
+    total_prints,
+    today_prints,
+    month_prints,
+    total_cost: total_prints * cost_per_page,
+    total_revenue: total_prints * price_per_page,
+    total_profit: total_prints * (price_per_page - cost_per_page),
+    today_cost: today_prints * cost_per_page,
+    today_revenue: today_prints * price_per_page,
+    today_profit: today_prints * (price_per_page - cost_per_page),
+    month_cost: month_prints * cost_per_page,
+    month_revenue: month_prints * price_per_page,
+    month_profit: month_prints * (price_per_page - cost_per_page),
+  };
+}
+
+/** 获取所有打印机的统计数据 */
+export async function getAllPrinterStats(): Promise<PrinterStats[]> {
+  const printers = await getAllPrinters();
+  const stats: PrinterStats[] = [];
+  
+  for (const printer of printers) {
+    const stat = await getPrinterStats(printer.id);
+    if (stat) stats.push(stat);
+  }
+  
+  return stats;
+}
+
+/** 检查 IP 是否已存在于 printer_logs 中 */
+export async function checkIPExistsInLogs(machineIP: string): Promise<{ exists: boolean; machine_name?: string }> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: 'SELECT DISTINCT machine_name FROM printer_logs WHERE machine_ip = ? LIMIT 1',
+    args: [machineIP],
+  });
+  
+  if (result.rows.length > 0) {
+    return { exists: true, machine_name: result.rows[0].machine_name as string };
+  }
+  return { exists: false };
+}
+
+/** 获取指定日期范围内的打印统计 (按打印机 IP 分组) */
+export async function getPrintStatsByDateRange(startDate: string, endDate: string): Promise<{
+  machine_ip: string;
+  machine_name: string;
+  total_prints: number;
+  printer_config?: DBPrinter;
+  revenue: number;
+  cost: number;
+  profit: number;
+}[]> {
+  const db = getDatabase();
+  
+  // 获取日期范围内的打印数据，按 IP 分组
+  const logsResult = await db.execute({
+    sql: `SELECT machine_ip, machine_name, SUM(print_count) as total_prints 
+          FROM printer_logs 
+          WHERE log_date >= ? AND log_date <= ? 
+          GROUP BY machine_ip`,
+    args: [startDate, endDate],
+  });
+  
+  const stats = [];
+  for (const row of logsResult.rows) {
+    const machine_ip = row.machine_ip as string;
+    const machine_name = row.machine_name as string;
+    const total_prints = Number(row.total_prints) || 0;
+    
+    // 查找对应的打印机配置
+    const printer = await getPrinterByIP(machine_ip);
+    
+    const cost_per_page = printer?.cost_per_page || 0.05;
+    const price_per_page = printer?.price_per_page || 0.5;
+    
+    stats.push({
+      machine_ip,
+      machine_name,
+      total_prints,
+      printer_config: printer || undefined,
+      revenue: total_prints * price_per_page,
+      cost: total_prints * cost_per_page,
+      profit: total_prints * (price_per_page - cost_per_page),
+    });
+  }
+  
+  return stats;
+}

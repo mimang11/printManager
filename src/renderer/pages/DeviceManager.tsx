@@ -1,64 +1,54 @@
 /**
  * ============================================
- * DeviceManager 页面 - 设备管理
+ * DeviceManager 页面 - 设备管理 (云端版)
  * ============================================
- * 管理打印机设备：添加、编辑、删除、测试连接
- * 
- * React 概念：
- * - 条件渲染: {condition && <Component />}
- * - 列表渲染: array.map() 配合 key 属性
- * - 表单处理: onChange 事件更新状态
+ * 从 Turso 云端数据库读取和管理打印机设备
  */
 
 import React, { useState, useEffect } from 'react';
-import { PrinterConfig, ScrapeResult } from '../../shared/types';
-import PrinterDetailPage from './PrinterDetail';
-
-// 默认选择器
-const DEFAULT_SELECTOR = 'table > tbody > tr > td:nth-child(3) > table:nth-child(3) > tbody > tr > td:nth-child(2) > table:nth-child(1) > tbody > tr > td:nth-child(4)';
+import { CloudPrinterConfig } from '../../shared/types';
 
 // 空表单数据
 const emptyForm = {
-  alias: '',
-  target_url: '',
-  dom_selector: DEFAULT_SELECTOR,
+  machine_name: '',
+  machine_ip: '',
   printer_type: 'mono' as 'mono' | 'color',
   cost_per_page: 0.05,
   price_per_page: 0.5,
-  revenue_formula: '',
-  cost_formula: '',
 };
 
 function DeviceManager() {
-  // 打印机列表
-  const [printers, setPrinters] = useState<PrinterConfig[]>([]);
+  // 打印机列表 (云端)
+  const [printers, setPrinters] = useState<CloudPrinterConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // 选中的打印机 (用于显示详情页)
-  const [selectedPrinter, setSelectedPrinter] = useState<PrinterConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // 是否显示成本信息
   const [showCost, setShowCost] = useState(false);
   
   // 弹窗状态
   const [showModal, setShowModal] = useState(false);
-  const [editingPrinter, setEditingPrinter] = useState<PrinterConfig | null>(null);
+  const [editingPrinter, setEditingPrinter] = useState<CloudPrinterConfig | null>(null);
   
   // 表单数据
   const [formData, setFormData] = useState(emptyForm);
   
-  // 测试结果
-  const [testResult, setTestResult] = useState<ScrapeResult | null>(null);
-  const [testing, setTesting] = useState(false);
+  // 保存状态
   const [saving, setSaving] = useState(false);
 
-  // 加载打印机列表
+  // 加载云端打印机列表
   const loadPrinters = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await window.electronAPI.getPrinters();
-      setPrinters(data);
-    } catch (error) {
-      console.error('加载失败:', error);
+      const result = await window.electronAPI.getCloudPrinterConfigs();
+      if (result.success && result.data) {
+        setPrinters(result.data);
+      } else {
+        setError(result.error || '加载失败');
+      }
+    } catch (err: any) {
+      setError(err.message || '加载失败');
     } finally {
       setLoading(false);
     }
@@ -72,120 +62,85 @@ function DeviceManager() {
   const handleAdd = () => {
     setEditingPrinter(null);
     setFormData(emptyForm);
-    setTestResult(null);
     setShowModal(true);
   };
 
   // 打开编辑弹窗
-  const handleEdit = (printer: PrinterConfig) => {
+  const handleEdit = (printer: CloudPrinterConfig) => {
     setEditingPrinter(printer);
     setFormData({
-      alias: printer.alias,
-      target_url: printer.target_url,
-      dom_selector: printer.dom_selector,
-      printer_type: printer.printer_type || 'mono',
-      cost_per_page: printer.financials.cost_per_page,
-      price_per_page: printer.financials.price_per_page,
-      revenue_formula: printer.financials.revenue_formula || '',
-      cost_formula: printer.financials.cost_formula || '',
+      machine_name: printer.machine_name,
+      machine_ip: printer.machine_ip,
+      printer_type: printer.printer_type,
+      cost_per_page: printer.cost_per_page,
+      price_per_page: printer.price_per_page,
     });
-    setTestResult(null);
     setShowModal(true);
   };
 
   // 删除打印机
-  const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这台打印机吗？')) return;
-    await window.electronAPI.deletePrinter(id);
-    loadPrinters();
-  };
-
-  // 刷新单个打印机
-  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
-  const handleRefreshOne = async (id: string) => {
-    setRefreshingIds(prev => new Set(prev).add(id));
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`确定要删除打印机 "${name}" 吗？`)) return;
     try {
-      await window.electronAPI.refreshOne(id);
-      await loadPrinters();
-    } finally {
-      setRefreshingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }
-  };
-
-  // 刷新所有打印机
-  const [refreshingAll, setRefreshingAll] = useState(false);
-  const handleRefreshAll = async () => {
-    setRefreshingAll(true);
-    // 标记所有设备为刷新中
-    setRefreshingIds(new Set(printers.map(p => p.id)));
-    try {
-      await window.electronAPI.refreshAll();
-      await loadPrinters();
-    } catch (error) {
-      console.error('刷新失败:', error);
-    } finally {
-      setRefreshingAll(false);
-      setRefreshingIds(new Set());
-    }
-  };
-
-  // 测试抓取
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const result = await window.electronAPI.testScrape(formData.target_url, formData.dom_selector);
-      setTestResult(result);
-    } catch (error) {
-      setTestResult({ success: false, printer_id: 'test', error: '测试失败', timestamp: Date.now() });
-    } finally {
-      setTesting(false);
+      const result = await window.electronAPI.deleteCloudPrinter(id);
+      if (result.success) {
+        loadPrinters();
+      } else {
+        alert('删除失败: ' + result.error);
+      }
+    } catch (err: any) {
+      alert('删除失败: ' + err.message);
     }
   };
 
   // 保存打印机
   const handleSave = async () => {
+    if (!formData.machine_name.trim()) {
+      alert('请输入打印机名称');
+      return;
+    }
+    if (!formData.machine_ip.trim()) {
+      alert('请输入 IP 地址');
+      return;
+    }
+    
     setSaving(true);
     try {
-      const printerData = {
-        alias: formData.alias,
-        target_url: formData.target_url,
-        dom_selector: formData.dom_selector,
-        printer_type: formData.printer_type,
-        financials: {
+      if (editingPrinter) {
+        // 更新
+        const result = await window.electronAPI.updateCloudPrinter(editingPrinter.id, {
+          machine_name: formData.machine_name,
+          machine_ip: formData.machine_ip,
+          printer_type: formData.printer_type,
           cost_per_page: formData.cost_per_page,
           price_per_page: formData.price_per_page,
-          revenue_formula: formData.revenue_formula || undefined,
-          cost_formula: formData.cost_formula || undefined,
-        },
-      };
-
-      if (editingPrinter) {
-        await window.electronAPI.updatePrinter({
-          ...editingPrinter,
-          ...printerData,
         });
+        if (!result.success) {
+          alert('更新失败: ' + result.error);
+          return;
+        }
       } else {
-        await window.electronAPI.addPrinter(printerData);
+        // 添加
+        const result = await window.electronAPI.addCloudPrinter({
+          machine_name: formData.machine_name,
+          machine_ip: formData.machine_ip,
+          printer_type: formData.printer_type,
+          cost_per_page: formData.cost_per_page,
+          price_per_page: formData.price_per_page,
+          status: 'offline',
+        });
+        if (!result.success) {
+          alert('添加失败: ' + result.error);
+          return;
+        }
       }
-      
       setShowModal(false);
       loadPrinters();
-    } catch (error) {
-      alert('保存失败: ' + error);
+    } catch (err: any) {
+      alert('保存失败: ' + err.message);
     } finally {
       setSaving(false);
     }
-  };
-
-  // 从URL提取IP地址
-  const extractIP = (url: string): string => {
-    const match = url.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-    return match ? match[1] : url;
   };
 
   // 渲染状态标签
@@ -200,34 +155,42 @@ function DeviceManager() {
       offline: '离线',
       error: '错误',
     };
-    return <span className={`status-badge ${statusMap[status]}`}>{labelMap[status]}</span>;
+    return <span className={`status-badge ${statusMap[status] || 'status-offline'}`}>{labelMap[status] || '未知'}</span>;
+  };
+
+  // 测试数据库连接
+  const [testingConnection, setTestingConnection] = useState(false);
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    try {
+      const result = await window.electronAPI.testCloudConnection();
+      if (result.success) {
+        alert('✅ ' + result.message);
+      } else {
+        alert('❌ 连接失败: ' + result.error);
+      }
+    } catch (err: any) {
+      alert('❌ 连接失败: ' + err.message);
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   if (loading) {
     return <div className="loading">加载中...</div>;
   }
 
-  // 如果选中了打印机，显示详情页
-  if (selectedPrinter) {
-    return (
-      <PrinterDetailPage 
-        printer={selectedPrinter} 
-        onBack={() => setSelectedPrinter(null)} 
-      />
-    );
-  }
-
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">设备管理</h1>
+        <h1 className="page-title">设备管理 <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(云端)</span></h1>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             className="btn btn-secondary"
-            onClick={handleRefreshAll}
-            disabled={refreshingAll || printers.length === 0}
+            onClick={handleTestConnection}
+            disabled={testingConnection}
           >
-            {refreshingAll ? '⏳ 刷新中...' : '🔄 全部刷新'}
+            {testingConnection ? '⏳ 测试中...' : '🔗 测试连接'}
           </button>
           <button 
             className={`btn ${showCost ? 'btn-primary' : 'btn-secondary'}`} 
@@ -238,6 +201,13 @@ function DeviceManager() {
           <button className="btn btn-primary" onClick={handleAdd}>+ 添加打印机</button>
         </div>
       </div>
+
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '16px' }}>
+          {error}
+          <button onClick={loadPrinters} style={{ marginLeft: '12px' }}>重试</button>
+        </div>
+      )}
 
       {printers.length === 0 ? (
         <div className="card">
@@ -250,17 +220,17 @@ function DeviceManager() {
           <table className="table">
             <thead>
               <tr>
-                <th>别名</th>
-                <th>地址</th>
+                <th>名称</th>
+                <th>IP 地址</th>
+                <th>类型</th>
                 <th>状态</th>
                 {showCost && <th>成本/售价</th>}
-                <th>最后更新</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {printers.map((printer) => (
-                <tr key={printer.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedPrinter(printer)}>
+                <tr key={printer.id}>
                   <td style={{ color: '#3b82f6', fontWeight: 500 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                       {printer.printer_type === 'color' ? (
@@ -270,42 +240,18 @@ function DeviceManager() {
                       ) : (
                         <span style={{ fontSize: '18px', filter: 'grayscale(100%)' }}>🖨️</span>
                       )}
-                      {printer.alias}
+                      {printer.machine_name}
                     </span>
                   </td>
+                  <td>{printer.machine_ip}</td>
+                  <td>{printer.printer_type === 'color' ? '彩色机' : '黑白机'}</td>
+                  <td>{renderStatus(printer.status)}</td>
+                  {showCost && <td>¥{printer.cost_per_page} / ¥{printer.price_per_page}</td>}
                   <td>
-                    <a 
-                      href={printer.target_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ 
-                        color: '#3b82f6', textDecoration: 'none', 
-                        display: 'inline-flex', alignItems: 'center', gap: '4px'
-                      }}
-                      title={printer.target_url}
-                    >
-                      {extractIP(printer.target_url)}
-                      <span style={{ fontSize: '12px' }}>↗</span>
-                    </a>
-                  </td>
-                  <td>
-                    {refreshingIds.has(printer.id) ? (
-                      <span className="status-badge" style={{ background: '#fef3c7', color: '#d97706' }}>
-                        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span> 刷新中
-                      </span>
-                    ) : renderStatus(printer.status)}
-                  </td>
-                  {showCost && <td>¥{printer.financials.cost_per_page} / ¥{printer.financials.price_per_page}</td>}
-                  <td>{new Date(printer.last_updated).toLocaleString()}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => handleRefreshOne(printer.id)} style={{ marginRight: '8px' }}>
-                      刷新
-                    </button>
                     <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(printer)} style={{ marginRight: '8px' }}>
                       编辑
                     </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(printer.id)}>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(printer.id, printer.machine_name)}>
                       删除
                     </button>
                   </td>
@@ -319,20 +265,32 @@ function DeviceManager() {
       {/* 添加/编辑弹窗 */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editingPrinter ? '编辑打印机' : '添加打印机'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">别名 *</label>
+                <label className="form-label">打印机名称 *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="例如：财务室夏普"
-                  value={formData.alias}
-                  onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                  placeholder="例如：一号机"
+                  value={formData.machine_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, machine_name: e.target.value }))}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">IP 地址 *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="例如：192.168.1.18"
+                  value={formData.machine_ip}
+                  onChange={(e) => setFormData(prev => ({ ...prev, machine_ip: e.target.value }))}
+                  autoComplete="off"
                 />
               </div>
               <div className="form-group">
@@ -360,26 +318,6 @@ function DeviceManager() {
                   </label>
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">抓取地址 *</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="http://192.168.1.100/status.html"
-                  value={formData.target_url}
-                  onChange={(e) => setFormData({ ...formData, target_url: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">CSS 选择器</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.dom_selector}
-                  onChange={(e) => setFormData({ ...formData, dom_selector: e.target.value })}
-                />
-                <p className="form-hint">用于定位计数器数值的 CSS 选择器</p>
-              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">单张成本 (元)</label>
@@ -402,46 +340,10 @@ function DeviceManager() {
                   />
                 </div>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label className="form-label">收益公式 (可选)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="例如: count * 0.5"
-                    value={formData.revenue_formula}
-                    onChange={(e) => setFormData({ ...formData, revenue_formula: e.target.value })}
-                  />
-                  <p className="form-hint">留空则使用: count * 单张售价</p>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">成本公式 (可选)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="例如: count * 0.05"
-                    value={formData.cost_formula}
-                    onChange={(e) => setFormData({ ...formData, cost_formula: e.target.value })}
-                  />
-                  <p className="form-hint">留空则使用: count * 单张成本</p>
-                </div>
-              </div>
-
-              {/* 测试结果 */}
-              {testResult && (
-                <div className={`alert ${testResult.success ? 'alert-success' : 'alert-error'}`}>
-                  {testResult.success 
-                    ? `测试成功！读取到计数器: ${testResult.counter}` 
-                    : `测试失败: ${testResult.error}`}
-                </div>
-              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleTest} disabled={testing || !formData.target_url}>
-                {testing ? '测试中...' : '测试抓取'}
-              </button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !formData.alias || !formData.target_url}>
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
