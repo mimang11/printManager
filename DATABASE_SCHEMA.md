@@ -74,6 +74,29 @@ CREATE TABLE other_revenues (
 CREATE INDEX idx_other_revenues_date ON other_revenues(revenue_date);
 ```
 
+---
+
+### 4. waste_records - 损耗记录表
+
+存储每台打印机每天的损耗数量（卡纸、错打等）。
+
+```sql
+CREATE TABLE waste_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  machine_ip TEXT NOT NULL,           -- 打印机 IP 地址
+  waste_date TEXT NOT NULL,           -- 日期 YYYY-MM-DD
+  waste_count INTEGER NOT NULL DEFAULT 0,  -- 损耗数量
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 唯一约束：每台打印机每天只有一条损耗记录
+CREATE UNIQUE INDEX idx_waste_machine_date ON waste_records(machine_ip, waste_date);
+```
+
+**字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | machine_ip | TEXT | 打印机 IP 地址 | | waste_date | TEXT | 日期，格式 YYYY-MM-DD | | waste_count | INTEGER | 损耗数量 | | created_at | DATETIME | 创建时间 |
+
+**注意：** `printer_logs` 表中的 `print_count` 是累计值，实际当天打印量 = 当天累计值 - 前一天累计值
+
 **字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | revenue_date | TEXT | 日期，格式 YYYY-MM-DD | | amount | REAL | 金额（元） | | description | TEXT | 描述/备注 | | category | TEXT | 分类，默认"其他" | | created_at | DATETIME | 创建时间 |
 
 ---
@@ -123,6 +146,17 @@ CREATE TABLE IF NOT EXISTS other_revenues (
 );
 
 CREATE INDEX IF NOT EXISTS idx_other_revenues_date ON other_revenues(revenue_date);
+
+-- 4. 创建损耗记录表
+CREATE TABLE IF NOT EXISTS waste_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  machine_ip TEXT NOT NULL,
+  waste_date TEXT NOT NULL,
+  waste_count INTEGER NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_waste_machine_date ON waste_records(machine_ip, waste_date);
 ```
 
 ---

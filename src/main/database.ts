@@ -496,9 +496,10 @@ export interface CloudMonthlyRevenueData {
   printers: {
     printerId: string;
     printerName: string;
-    count: number;
-    revenue: number;
-    cost: number;
+    count: number;        // 实际打印量 (当天累计 - 前一天累计)
+    wasteCount: number;   // 损耗数量
+    revenue: number;      // 营收 (有效印量 * 售价)
+    cost: number;         // 成本 (物理印量 * 成本)
     profit: number;
   }[];
   otherIncome: number;
@@ -507,33 +508,48 @@ export interface CloudMonthlyRevenueData {
   rent: number;
 }
 
-/** 获取月度营收数据 (从云端) */
+/** 获取月度营收数据 (从云端) - 打印量为累计值差值 */
 export async function getCloudMonthlyRevenueData(year: number, month: number): Promise<CloudMonthlyRevenueData[]> {
   const db = getDatabase();
   
-  // 构建日期范围
+  // 构建日期范围 (需要获取前一天的数据来计算差值)
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   
-  // 获取所有打印机配置 (用于成本/售价计算)
+  // 计算前一天日期
+  const prevDate = new Date(year, month - 1, 0); // 上个月最后一天
+  const prevDateStr = prevDate.toISOString().split('T')[0];
+  
+  // 获取所有打印机配置
   const printers = await getAllPrinters();
   const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
   
-  // 获取日期范围内的打印日志
+  // 获取日期范围内的打印日志 (包含前一天)
   const logsResult = await db.execute({
     sql: `SELECT log_date, machine_ip, machine_name, print_count 
           FROM printer_logs 
           WHERE log_date >= ? AND log_date <= ? 
-          ORDER BY log_date, machine_name`,
+          ORDER BY machine_ip, log_date`,
+    args: [prevDateStr, endDate],
+  });
+  
+  // 获取损耗记录
+  const wasteResult = await db.execute({
+    sql: `SELECT machine_ip, waste_date, waste_count FROM waste_records WHERE waste_date >= ? AND waste_date <= ?`,
     args: [startDate, endDate],
   });
   
+  // 构建损耗映射 (machine_ip + date -> waste_count)
+  const wasteMap = new Map<string, number>();
+  for (const row of wasteResult.rows) {
+    const key = `${row.machine_ip}_${row.waste_date}`;
+    wasteMap.set(key, row.waste_count as number);
+  }
+  
   // 获取其他收入
   const otherResult = await db.execute({
-    sql: `SELECT revenue_date, amount, description 
-          FROM other_revenues 
-          WHERE revenue_date >= ? AND revenue_date <= ?`,
+    sql: `SELECT revenue_date, amount, description FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
     args: [startDate, endDate],
   });
   
@@ -549,35 +565,65 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
     otherIncomeMap.set(date, existing);
   }
   
-  // 按日期分组打印日志
-  const dailyData = new Map<string, CloudMonthlyRevenueData>();
-  
+  // 按打印机分组日志，计算每天的实际打印量
+  const machineLogsMap = new Map<string, Map<string, { name: string; count: number }>>();
   for (const row of logsResult.rows) {
-    const date = row.log_date as string;
     const machine_ip = row.machine_ip as string;
+    const log_date = row.log_date as string;
     const machine_name = row.machine_name as string;
     const print_count = row.print_count as number;
     
+    if (!machineLogsMap.has(machine_ip)) {
+      machineLogsMap.set(machine_ip, new Map());
+    }
+    machineLogsMap.get(machine_ip)!.set(log_date, { name: machine_name, count: print_count });
+  }
+  
+  // 构建每日数据
+  const dailyData = new Map<string, CloudMonthlyRevenueData>();
+  
+  // 遍历每台打印机，计算每天的实际打印量
+  for (const [machine_ip, dateLogs] of machineLogsMap) {
+    const sortedDates = Array.from(dateLogs.keys()).sort();
     const printer = printerMap.get(machine_ip);
     const cost_per_page = printer?.cost_per_page || 0.05;
     const price_per_page = printer?.price_per_page || 0.5;
     
-    const revenue = print_count * price_per_page;
-    const cost = print_count * cost_per_page;
-    const profit = revenue - cost;
-    
-    if (!dailyData.has(date)) {
-      const otherInfo = otherIncomeMap.get(date) || { amount: 0, note: '' };
-      dailyData.set(date, {
-        date, printers: [], otherIncome: otherInfo.amount,
-        otherIncomeNote: otherInfo.note, netProfit: 0, rent: 0,
+    for (let i = 0; i < sortedDates.length; i++) {
+      const date = sortedDates[i];
+      if (date < startDate) continue; // 跳过前一天的数据
+      
+      const currentLog = dateLogs.get(date)!;
+      const prevLog = i > 0 ? dateLogs.get(sortedDates[i - 1]) : null;
+      
+      // 实际打印量 = 当天累计 - 前一天累计
+      const actualCount = prevLog ? Math.max(0, currentLog.count - prevLog.count) : currentLog.count;
+      
+      // 获取损耗
+      const wasteKey = `${machine_ip}_${date}`;
+      const wasteCount = wasteMap.get(wasteKey) || 0;
+      
+      // 有效印量 = 实际打印量 - 损耗
+      const effectiveCount = Math.max(0, actualCount - wasteCount);
+      
+      // 营收按有效印量计算，成本按物理印量计算
+      const revenue = effectiveCount * price_per_page;
+      const cost = actualCount * cost_per_page;
+      const profit = revenue - cost;
+      
+      if (!dailyData.has(date)) {
+        const otherInfo = otherIncomeMap.get(date) || { amount: 0, note: '' };
+        dailyData.set(date, {
+          date, printers: [], otherIncome: otherInfo.amount,
+          otherIncomeNote: otherInfo.note, netProfit: 0, rent: 0,
+        });
+      }
+      
+      dailyData.get(date)!.printers.push({
+        printerId: machine_ip, printerName: currentLog.name,
+        count: actualCount, wasteCount, revenue, cost, profit,
       });
     }
-    
-    dailyData.get(date)!.printers.push({
-      printerId: machine_ip, printerName: machine_name,
-      count: print_count, revenue, cost, profit,
-    });
   }
   
   // 计算每日净利润
@@ -588,6 +634,16 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
   }
   
   return Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** 更新损耗记录 */
+export async function updateWasteRecord(machineIP: string, wasteDate: string, wasteCount: number): Promise<void> {
+  const db = getDatabase();
+  await db.execute({
+    sql: `INSERT INTO waste_records (machine_ip, waste_date, waste_count) VALUES (?, ?, ?)
+          ON CONFLICT(machine_ip, waste_date) DO UPDATE SET waste_count = ?`,
+    args: [machineIP, wasteDate, wasteCount, wasteCount],
+  });
 }
 
 /** 添加其他收入 (云端) */

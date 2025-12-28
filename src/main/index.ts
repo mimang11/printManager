@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -765,6 +765,19 @@ ipcMain.handle('add-cloud-other-revenue', async (_, data: { date: string; amount
     return { success: true };
   } catch (error: any) {
     console.error('添加云端其他收入失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 更新损耗记录
+ */
+ipcMain.handle('update-cloud-waste', async (_, machineIP: string, wasteDate: string, wasteCount: number) => {
+  try {
+    await updateWasteRecord(machineIP, wasteDate, wasteCount);
+    return { success: true };
+  } catch (error: any) {
+    console.error('更新损耗记录失败:', error);
     return { success: false, error: error.message };
   }
 });
