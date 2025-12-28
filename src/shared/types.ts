@@ -179,6 +179,21 @@ export interface OtherRevenue {
 }
 
 /**
+ * 云端打印机配置 (对应 printers 表)
+ */
+export interface CloudPrinterConfig {
+  id: number;
+  machine_name: string;
+  machine_ip: string;
+  printer_type: 'mono' | 'color';
+  cost_per_page: number;
+  price_per_page: number;
+  status: 'online' | 'offline' | 'error';
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * 云端打印机信息 (从 Turso 数据库)
  */
 export interface CloudPrinter {
@@ -240,6 +255,12 @@ export interface ElectronAPI {
   getCloudLogs: (machineName?: string, startDate?: string, endDate?: string) => Promise<{ success: boolean; data?: CloudPrinterLog[]; error?: string }>;
   getCloudDailyStats: (startDate: string, endDate: string) => Promise<{ success: boolean; data?: CloudPrinterLog[]; error?: string }>;
   testCloudConnection: () => Promise<{ success: boolean; message?: string; error?: string }>;
+  
+  // ========== 云端打印机 CRUD (printers 表) ==========
+  getCloudPrinterConfigs: () => Promise<{ success: boolean; data?: CloudPrinterConfig[]; error?: string }>;
+  addCloudPrinter: (printer: Omit<CloudPrinterConfig, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; data?: CloudPrinterConfig; error?: string }>;
+  updateCloudPrinter: (id: number, printer: Partial<CloudPrinterConfig>) => Promise<{ success: boolean; data?: CloudPrinterConfig; error?: string }>;
+  deleteCloudPrinter: (id: number) => Promise<{ success: boolean; data?: boolean; error?: string }>;
 }
 
 // 扩展 Window 接口，添加 electronAPI

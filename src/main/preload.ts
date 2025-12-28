@@ -102,6 +102,20 @@ const electronAPI: ElectronAPI = {
   
   // 测试云端连接
   testCloudConnection: () => ipcRenderer.invoke('test-cloud-connection'),
+
+  // ========== 云端打印机 CRUD (printers 表) ==========
+  
+  // 获取云端打印机配置列表
+  getCloudPrinterConfigs: () => ipcRenderer.invoke('get-cloud-printer-configs'),
+  
+  // 添加云端打印机
+  addCloudPrinter: (printer) => ipcRenderer.invoke('add-cloud-printer', printer),
+  
+  // 更新云端打印机
+  updateCloudPrinter: (id, printer) => ipcRenderer.invoke('update-cloud-printer', id, printer),
+  
+  // 删除云端打印机
+  deleteCloudPrinter: (id) => ipcRenderer.invoke('delete-cloud-printer', id),
 };
 
 // 使用 contextBridge 安全地暴露 API

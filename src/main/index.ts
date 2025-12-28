@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -607,4 +607,60 @@ ipcMain.handle('test-cloud-connection', async () => {
 // 应用退出时关闭数据库连接
 app.on('will-quit', () => {
   closeDatabase();
+});
+
+// ============================================
+// IPC 处理器 - 云端打印机 CRUD (printers 表)
+// ============================================
+
+/**
+ * 获取所有云端打印机配置
+ */
+ipcMain.handle('get-cloud-printer-configs', async () => {
+  try {
+    const printers = await getAllPrinters();
+    return { success: true, data: printers };
+  } catch (error: any) {
+    console.error('获取云端打印机配置失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 添加云端打印机
+ */
+ipcMain.handle('add-cloud-printer', async (_, printerData: Omit<DBPrinter, 'id' | 'created_at' | 'updated_at'>) => {
+  try {
+    const printer = await dbAddPrinter(printerData);
+    return { success: true, data: printer };
+  } catch (error: any) {
+    console.error('添加云端打印机失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 更新云端打印机
+ */
+ipcMain.handle('update-cloud-printer', async (_, id: number, printerData: Partial<DBPrinter>) => {
+  try {
+    const printer = await dbUpdatePrinter(id, printerData);
+    return { success: true, data: printer };
+  } catch (error: any) {
+    console.error('更新云端打印机失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 删除云端打印机
+ */
+ipcMain.handle('delete-cloud-printer', async (_, id: number) => {
+  try {
+    const result = await dbDeletePrinter(id);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('删除云端打印机失败:', error);
+    return { success: false, error: error.message };
+  }
 });
