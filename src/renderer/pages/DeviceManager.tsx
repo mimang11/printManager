@@ -3,10 +3,11 @@
  * DeviceManager 页面 - 设备管理 (云端版)
  * ============================================
  * 从 Turso 云端数据库读取和管理打印机设备
+ * 通过 IP 地址关联 printer_logs 表
  */
 
 import React, { useState, useEffect } from 'react';
-import { CloudPrinterConfig } from '../../shared/types';
+import { CloudPrinterConfig, PrinterStatsData } from '../../shared/types';
 
 // 空表单数据
 const emptyForm = {
@@ -18,8 +19,8 @@ const emptyForm = {
 };
 
 function DeviceManager() {
-  // 打印机列表 (云端)
-  const [printers, setPrinters] = useState<CloudPrinterConfig[]>([]);
+  // 打印机统计数据列表
+  const [printerStats, setPrinterStats] = useState<PrinterStatsData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -33,17 +34,21 @@ function DeviceManager() {
   // 表单数据
   const [formData, setFormData] = useState(emptyForm);
   
+  // IP 检查状态
+  const [ipCheckResult, setIpCheckResult] = useState<{ exists: boolean; machine_name?: string } | null>(null);
+  const [checkingIP, setCheckingIP] = useState(false);
+  
   // 保存状态
   const [saving, setSaving] = useState(false);
 
-  // 加载云端打印机列表
-  const loadPrinters = async () => {
+  // 加载打印机统计数据
+  const loadPrinterStats = async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await window.electronAPI.getCloudPrinterConfigs();
+      const result = await window.electronAPI.getAllPrinterStats();
       if (result.success && result.data) {
-        setPrinters(result.data);
+        setPrinterStats(result.data);
       } else {
         setError(result.error || '加载失败');
       }
@@ -55,13 +60,33 @@ function DeviceManager() {
   };
 
   useEffect(() => {
-    loadPrinters();
+    loadPrinterStats();
   }, []);
+
+  // 检查 IP 是否存在于 printer_logs
+  const checkIP = async (ip: string) => {
+    if (!ip.trim()) {
+      setIpCheckResult(null);
+      return;
+    }
+    setCheckingIP(true);
+    try {
+      const result = await window.electronAPI.checkIPExists(ip);
+      if (result.success && result.data) {
+        setIpCheckResult(result.data);
+      }
+    } catch (err) {
+      setIpCheckResult(null);
+    } finally {
+      setCheckingIP(false);
+    }
+  };
 
   // 打开添加弹窗
   const handleAdd = () => {
     setEditingPrinter(null);
     setFormData(emptyForm);
+    setIpCheckResult(null);
     setShowModal(true);
   };
 
@@ -75,6 +100,7 @@ function DeviceManager() {
       cost_per_page: printer.cost_per_page,
       price_per_page: printer.price_per_page,
     });
+    setIpCheckResult(null);
     setShowModal(true);
   };
 
@@ -84,7 +110,7 @@ function DeviceManager() {
     try {
       const result = await window.electronAPI.deleteCloudPrinter(id);
       if (result.success) {
-        loadPrinters();
+        loadPrinterStats();
       } else {
         alert('删除失败: ' + result.error);
       }
@@ -120,14 +146,14 @@ function DeviceManager() {
           return;
         }
       } else {
-        // 添加
+        // 添加 - 状态由后端根据 IP 是否存在于 printer_logs 决定
         const result = await window.electronAPI.addCloudPrinter({
           machine_name: formData.machine_name,
           machine_ip: formData.machine_ip,
           printer_type: formData.printer_type,
           cost_per_page: formData.cost_per_page,
           price_per_page: formData.price_per_page,
-          status: 'offline',
+          status: 'offline', // 后端会根据 IP 检查结果覆盖
         });
         if (!result.success) {
           alert('添加失败: ' + result.error);
@@ -135,7 +161,7 @@ function DeviceManager() {
         }
       }
       setShowModal(false);
-      loadPrinters();
+      loadPrinterStats();
     } catch (err: any) {
       alert('保存失败: ' + err.message);
     } finally {
@@ -205,11 +231,11 @@ function DeviceManager() {
       {error && (
         <div className="alert alert-error" style={{ marginBottom: '16px' }}>
           {error}
-          <button onClick={loadPrinters} style={{ marginLeft: '12px' }}>重试</button>
+          <button onClick={loadPrinterStats} style={{ marginLeft: '12px' }}>重试</button>
         </div>
       )}
 
-      {printers.length === 0 ? (
+      {printerStats.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <p>暂无打印机，点击上方按钮添加</p>
@@ -224,34 +250,38 @@ function DeviceManager() {
                 <th>IP 地址</th>
                 <th>类型</th>
                 <th>状态</th>
+                <th>本月打印量</th>
                 {showCost && <th>成本/售价</th>}
+                {showCost && <th>本月利润</th>}
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {printers.map((printer) => (
-                <tr key={printer.id}>
+              {printerStats.map((stat) => (
+                <tr key={stat.printer.id}>
                   <td style={{ color: '#3b82f6', fontWeight: 500 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      {printer.printer_type === 'color' ? (
+                      {stat.printer.printer_type === 'color' ? (
                         <span style={{ fontSize: '18px', position: 'relative' }}>
                           🖨️<span style={{ position: 'absolute', bottom: '-2px', right: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: 'linear-gradient(135deg, #ef4444, #f59e0b, #22c55e, #3b82f6)', border: '1px solid white' }}></span>
                         </span>
                       ) : (
                         <span style={{ fontSize: '18px', filter: 'grayscale(100%)' }}>🖨️</span>
                       )}
-                      {printer.machine_name}
+                      {stat.printer.machine_name}
                     </span>
                   </td>
-                  <td>{printer.machine_ip}</td>
-                  <td>{printer.printer_type === 'color' ? '彩色机' : '黑白机'}</td>
-                  <td>{renderStatus(printer.status)}</td>
-                  {showCost && <td>¥{printer.cost_per_page} / ¥{printer.price_per_page}</td>}
+                  <td>{stat.printer.machine_ip}</td>
+                  <td>{stat.printer.printer_type === 'color' ? '彩色机' : '黑白机'}</td>
+                  <td>{renderStatus(stat.printer.status)}</td>
+                  <td>{stat.month_prints.toLocaleString()} 张</td>
+                  {showCost && <td>¥{stat.printer.cost_per_page} / ¥{stat.printer.price_per_page}</td>}
+                  {showCost && <td style={{ color: stat.month_profit >= 0 ? '#22c55e' : '#ef4444' }}>¥{stat.month_profit.toFixed(2)}</td>}
                   <td>
-                    <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(printer)} style={{ marginRight: '8px' }}>
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(stat.printer)} style={{ marginRight: '8px' }}>
                       编辑
                     </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(printer.id, printer.machine_name)}>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(stat.printer.id, stat.printer.machine_name)}>
                       删除
                     </button>
                   </td>
@@ -290,8 +320,17 @@ function DeviceManager() {
                   placeholder="例如：192.168.1.18"
                   value={formData.machine_ip}
                   onChange={(e) => setFormData(prev => ({ ...prev, machine_ip: e.target.value }))}
+                  onBlur={(e) => checkIP(e.target.value)}
                   autoComplete="off"
                 />
+                {checkingIP && <p className="form-hint">检查中...</p>}
+                {ipCheckResult && (
+                  <p className="form-hint" style={{ color: ipCheckResult.exists ? '#22c55e' : '#f59e0b' }}>
+                    {ipCheckResult.exists 
+                      ? `✅ 已关联日志数据 (${ipCheckResult.machine_name})，状态将设为"在线"` 
+                      : '⚠️ 未找到日志数据，状态将设为"离线"'}
+                  </p>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">打印机类型</label>
