@@ -16,6 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -546,3 +547,64 @@ function getYesterdayDate(): string {
   yesterday.setDate(yesterday.getDate() - 1);
   return yesterday.toISOString().split('T')[0];
 }
+
+// ============================================
+// IPC 处理器 - 云端数据 (Turso)
+// ============================================
+
+/**
+ * 获取云端打印机列表（从 printer_logs 表去重）
+ */
+ipcMain.handle('get-cloud-printers', async () => {
+  try {
+    const printers = await getPrintersFromDB();
+    return { success: true, data: printers };
+  } catch (error: any) {
+    console.error('获取云端打印机失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取云端打印记录
+ */
+ipcMain.handle('get-cloud-logs', async (_, machineName?: string, startDate?: string, endDate?: string) => {
+  try {
+    const logs = await getPrinterLogsFromDB(machineName, startDate, endDate);
+    return { success: true, data: logs };
+  } catch (error: any) {
+    console.error('获取云端打印记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取云端每日打印统计
+ */
+ipcMain.handle('get-cloud-daily-stats', async (_, startDate: string, endDate: string) => {
+  try {
+    const logs = await getDailyPrintCounts(startDate, endDate);
+    return { success: true, data: logs };
+  } catch (error: any) {
+    console.error('获取云端每日统计失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 测试云端数据库连接
+ */
+ipcMain.handle('test-cloud-connection', async () => {
+  try {
+    initDatabase();
+    const printers = await getPrintersFromDB();
+    return { success: true, message: `连接成功，发现 ${printers.length} 台打印机` };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 应用退出时关闭数据库连接
+app.on('will-quit', () => {
+  closeDatabase();
+});

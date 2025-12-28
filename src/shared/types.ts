@@ -179,6 +179,26 @@ export interface OtherRevenue {
 }
 
 /**
+ * 云端打印机信息 (从 Turso 数据库)
+ */
+export interface CloudPrinter {
+  machine_name: string;
+  machine_ip: string;
+}
+
+/**
+ * 云端打印日志 (对应 printer_logs 表)
+ */
+export interface CloudPrinterLog {
+  id: number;
+  machine_name: string;
+  machine_ip: string;
+  print_count: number;
+  log_date: string;
+  created_at: string;
+}
+
+/**
  * IPC 通信的 API 接口定义
  * 这些方法会通过 contextBridge 暴露给渲染进程
  */
@@ -214,6 +234,12 @@ export interface ElectronAPI {
   importHistoryData: () => Promise<{ success: boolean; message: string; matchedPrinters?: string[]; unmatchedHeaders?: string[] }>;
   // 更新损耗数量
   updateWasteCount: (date: string, printerId: string, wasteCount: number) => Promise<boolean>;
+  
+  // ========== 云端数据 (Turso) ==========
+  getCloudPrinters: () => Promise<{ success: boolean; data?: CloudPrinter[]; error?: string }>;
+  getCloudLogs: (machineName?: string, startDate?: string, endDate?: string) => Promise<{ success: boolean; data?: CloudPrinterLog[]; error?: string }>;
+  getCloudDailyStats: (startDate: string, endDate: string) => Promise<{ success: boolean; data?: CloudPrinterLog[]; error?: string }>;
+  testCloudConnection: () => Promise<{ success: boolean; message?: string; error?: string }>;
 }
 
 // 扩展 Window 接口，添加 electronAPI

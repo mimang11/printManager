@@ -88,6 +88,20 @@ const electronAPI: ElectronAPI = {
   
   // 更新损耗数量
   updateWasteCount: (date, printerId, wasteCount) => ipcRenderer.invoke('update-waste-count', date, printerId, wasteCount),
+
+  // ========== 云端数据 (Turso) ==========
+  
+  // 获取云端打印机列表
+  getCloudPrinters: () => ipcRenderer.invoke('get-cloud-printers'),
+  
+  // 获取云端打印记录
+  getCloudLogs: (machineName, startDate, endDate) => ipcRenderer.invoke('get-cloud-logs', machineName, startDate, endDate),
+  
+  // 获取云端每日统计
+  getCloudDailyStats: (startDate, endDate) => ipcRenderer.invoke('get-cloud-daily-stats', startDate, endDate),
+  
+  // 测试云端连接
+  testCloudConnection: () => ipcRenderer.invoke('test-cloud-connection'),
 };
 
 // 使用 contextBridge 安全地暴露 API
