@@ -271,6 +271,10 @@ export interface ElectronAPI {
   getCloudMonthlyRevenue: (year: number, month: number) => Promise<{ success: boolean; data?: CloudMonthlyRevenueData[]; error?: string }>;
   addCloudOtherRevenue: (data: { date: string; amount: number; description: string; category: string }) => Promise<{ success: boolean; error?: string }>;
   updateCloudWaste: (machineIP: string, wasteDate: string, wasteCount: number) => Promise<{ success: boolean; error?: string }>;
+  
+  // ========== 系统设置 ==========
+  getMonthlyRent: () => Promise<{ success: boolean; data?: number; error?: string }>;
+  updateMonthlyRent: (rent: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 /** 打印机统计数据 */

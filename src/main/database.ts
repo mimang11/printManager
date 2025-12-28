@@ -660,3 +660,41 @@ export async function deleteCloudOtherRevenue(id: number): Promise<void> {
   const db = getDatabase();
   await db.execute({ sql: 'DELETE FROM other_revenues WHERE id = ?', args: [id] });
 }
+
+// ============================================
+// 系统设置相关函数
+// ============================================
+
+/** 获取设置值 */
+export async function getSetting(key: string, defaultValue: string = ''): Promise<string> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: 'SELECT setting_value FROM settings WHERE setting_key = ?',
+    args: [key],
+  });
+  if (result.rows.length > 0) {
+    return result.rows[0].setting_value as string;
+  }
+  return defaultValue;
+}
+
+/** 更新设置值 */
+export async function updateSetting(key: string, value: string): Promise<void> {
+  const db = getDatabase();
+  await db.execute({
+    sql: `INSERT INTO settings (setting_key, setting_value, updated_at) VALUES (?, ?, datetime('now'))
+          ON CONFLICT(setting_key) DO UPDATE SET setting_value = ?, updated_at = datetime('now')`,
+    args: [key, value, value],
+  });
+}
+
+/** 获取月租金 */
+export async function getMonthlyRent(): Promise<number> {
+  const value = await getSetting('monthly_rent', '150');
+  return parseFloat(value) || 150;
+}
+
+/** 更新月租金 */
+export async function updateMonthlyRent(rent: number): Promise<void> {
+  await updateSetting('monthly_rent', rent.toString());
+}

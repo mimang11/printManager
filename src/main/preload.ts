@@ -138,6 +138,14 @@ const electronAPI: ElectronAPI = {
   
   // 更新损耗记录
   updateCloudWaste: (machineIP, wasteDate, wasteCount) => ipcRenderer.invoke('update-cloud-waste', machineIP, wasteDate, wasteCount),
+
+  // ========== 系统设置 ==========
+  
+  // 获取月租金
+  getMonthlyRent: () => ipcRenderer.invoke('get-monthly-rent'),
+  
+  // 更新月租金
+  updateMonthlyRent: (rent) => ipcRenderer.invoke('update-monthly-rent', rent),
 };
 
 // 使用 contextBridge 安全地暴露 API

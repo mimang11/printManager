@@ -97,6 +97,27 @@ CREATE UNIQUE INDEX idx_waste_machine_date ON waste_records(machine_ip, waste_da
 
 **注意：** `printer_logs` 表中的 `print_count` 是累计值，实际当天打印量 = 当天累计值 - 前一天累计值
 
+---
+
+### 5. settings - 系统设置表
+
+存储系统配置，如房租成本等。
+
+```sql
+CREATE TABLE settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setting_key TEXT NOT NULL UNIQUE,   -- 设置键名
+  setting_value TEXT NOT NULL,        -- 设置值
+  description TEXT,                   -- 描述
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**预设配置：**
+| setting_key | 默认值 | 说明 |
+|-------------|--------|------|
+| monthly_rent | 150 | 月租金（元） |
+
 **字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | revenue_date | TEXT | 日期，格式 YYYY-MM-DD | | amount | REAL | 金额（元） | | description | TEXT | 描述/备注 | | category | TEXT | 分类，默认"其他" | | created_at | DATETIME | 创建时间 |
 
 ---
@@ -157,6 +178,18 @@ CREATE TABLE IF NOT EXISTS waste_records (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_waste_machine_date ON waste_records(machine_ip, waste_date);
+
+-- 5. 创建系统设置表
+CREATE TABLE IF NOT EXISTS settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setting_key TEXT NOT NULL UNIQUE,
+  setting_value TEXT NOT NULL,
+  description TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 初始化默认设置
+INSERT OR IGNORE INTO settings (setting_key, setting_value, description) VALUES ('monthly_rent', '150', '月租金（元）');
 ```
 
 ---

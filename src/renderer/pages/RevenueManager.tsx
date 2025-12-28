@@ -9,12 +9,18 @@ function RevenueManager() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [filterDay, setFilterDay] = useState<number | null>(null); // 日期筛选
   const [revenueData, setRevenueData] = useState<CloudMonthlyRevenueData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [includeFixedCost, setIncludeFixedCost] = useState(false);
+  
+  // 月租金
+  const [monthlyRent, setMonthlyRent] = useState(150);
+  const [showRentModal, setShowRentModal] = useState(false);
+  const [editingRent, setEditingRent] = useState(150);
   
   // 其他收入弹窗
   const [showAddModal, setShowAddModal] = useState(false);
@@ -29,6 +35,19 @@ function RevenueManager() {
   const [wastePrinterName, setWastePrinterName] = useState('');
   const [wasteMaxCount, setWasteMaxCount] = useState(0);
   const [wasteCount, setWasteCount] = useState(0);
+
+  // 加载月租金
+  const loadRent = async () => {
+    try {
+      const result = await window.electronAPI.getMonthlyRent();
+      if (result.success && result.data !== undefined) {
+        setMonthlyRent(result.data);
+        setEditingRent(result.data);
+      }
+    } catch (err) {
+      console.error('加载月租金失败:', err);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -48,7 +67,8 @@ function RevenueManager() {
     }
   };
 
-  useEffect(() => { loadData(); }, [year, month]);
+  useEffect(() => { loadRent(); }, []);
+  useEffect(() => { loadData(); setFilterDay(null); }, [year, month]);
 
   const handleAddOther = async () => {
     if (!selectedDate) return;
@@ -95,6 +115,21 @@ function RevenueManager() {
     }
   };
 
+  // 保存月租金
+  const handleSaveRent = async () => {
+    try {
+      const result = await window.electronAPI.updateMonthlyRent(editingRent);
+      if (result.success) {
+        setMonthlyRent(editingRent);
+        setShowRentModal(false);
+      } else {
+        alert('保存失败: ' + result.error);
+      }
+    } catch (err: any) {
+      alert('保存失败: ' + err.message);
+    }
+  };
+
   const toggleRow = (date: string) => {
     const newSet = new Set(expandedRows);
     newSet.has(date) ? newSet.delete(date) : newSet.add(date);
@@ -104,8 +139,19 @@ function RevenueManager() {
   const expandAll = () => setExpandedRows(new Set(filteredData.map(d => d.date)));
   const collapseAll = () => setExpandedRows(new Set());
 
-  // 计算月度汇总
-  const monthTotals = revenueData.reduce((acc, day) => {
+  // 根据日期筛选数据
+  const filteredData = revenueData.filter(d => {
+    const hasData = d.printers.some(p => p.count > 0) || d.otherIncome !== 0;
+    if (!hasData) return false;
+    if (filterDay !== null) {
+      const dayNum = parseInt(d.date.split('-')[2]);
+      return dayNum === filterDay;
+    }
+    return true;
+  });
+
+  // 计算月度汇总（基于筛选后的数据）
+  const monthTotals = filteredData.reduce((acc, day) => {
     const printerRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
     const printerCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
     const totalCount = day.printers.reduce((sum, p) => sum + p.count, 0);
@@ -114,15 +160,16 @@ function RevenueManager() {
       totalCost: acc.totalCost + printerCost,
       otherIncome: acc.otherIncome + day.otherIncome,
       netProfit: acc.netProfit + day.netProfit,
-      totalRent: acc.totalRent + Math.abs(day.rent),
       totalCount: acc.totalCount + totalCount,
     };
-  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalRent: 0, totalCount: 0 });
+  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalCount: 0 });
 
+  // 使用云端月租金
+  const fixedCost = monthlyRent;
+  
   // 盈亏平衡分析
   const avgProfitPerPage = monthTotals.totalCount > 0 
     ? (monthTotals.totalRevenue - monthTotals.totalCost) / monthTotals.totalCount : 0;
-  const fixedCost = monthTotals.totalRent;
   const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - fixedCost + monthTotals.otherIncome;
   const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil(fixedCost / avgProfitPerPage) : 0;
   const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) : 0;
@@ -145,7 +192,8 @@ function RevenueManager() {
     boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
   };
 
-  const filteredData = revenueData.filter(d => d.printers.some(p => p.count > 0) || d.otherIncome !== 0);
+  // 生成日期选项
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
@@ -161,11 +209,15 @@ function RevenueManager() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <select className="form-input" style={{ width: '120px', minWidth: '120px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '100px', minWidth: '100px' }} value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}年</option>)}
           </select>
-          <select className="form-input" style={{ width: '90px', minWidth: '90px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+          <select className="form-input" style={{ width: '80px', minWidth: '80px' }} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {months.map(m => <option key={m} value={m}>{m}月</option>)}
+          </select>
+          <select className="form-input" style={{ width: '80px', minWidth: '80px' }} value={filterDay ?? ''} onChange={(e) => setFilterDay(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">全部</option>
+            {days.map(d => <option key={d} value={d}>{d}日</option>)}
           </select>
           <button className="btn btn-primary" onClick={loadData} disabled={loading}>
             {loading ? '加载中...' : '刷新'}
@@ -183,29 +235,39 @@ function RevenueManager() {
       {/* 月度汇总卡片 */}
       <div className="kpi-grid" style={{ marginBottom: '20px' }}>
         <div className="kpi-card">
-          <div className="kpi-label">本月总营业额</div>
+          <div className="kpi-label">{filterDay ? `${month}月${filterDay}日营业额` : '本月总营业额'}</div>
           <div className="kpi-value">¥{(monthTotals.totalRevenue + monthTotals.otherIncome).toFixed(2)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">本月总成本</div>
-          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + monthTotals.totalRent).toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{monthTotals.totalRent.toFixed(0)}</div>
+          <div className="kpi-label">{filterDay ? '当日成本' : '本月总成本'}</div>
+          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + (filterDay ? dailyRent : fixedCost)).toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{(filterDay ? dailyRent : fixedCost).toFixed(0)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">本月其他收入</div>
+          <div className="kpi-label">{filterDay ? '当日其他收入' : '本月其他收入'}</div>
           <div className="kpi-value" style={{ color: '#22c55e' }}>¥{monthTotals.otherIncome.toFixed(2)}</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">本月纯利润</div>
-          <div className="kpi-value" style={{ color: monthTotals.netProfit >= 0 ? '#22c55e' : '#ef4444' }}>
-            ¥{monthTotals.netProfit.toFixed(2)}
+          <div className="kpi-label">{filterDay ? '当日纯利润' : '本月纯利润'}</div>
+          <div className="kpi-value" style={{ color: (filterDay ? monthTotals.totalRevenue + monthTotals.otherIncome - monthTotals.totalCost - dailyRent : currentProfit) >= 0 ? '#22c55e' : '#ef4444' }}>
+            ¥{(filterDay ? monthTotals.totalRevenue + monthTotals.otherIncome - monthTotals.totalCost - dailyRent : currentProfit).toFixed(2)}
           </div>
         </div>
       </div>
 
       {/* 盈亏平衡分析 */}
+      {!filterDay && (
       <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-title">📊 盈亏平衡分析</div>
+        <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>📊 盈亏平衡分析</span>
+          <button 
+            className="btn btn-sm btn-secondary" 
+            onClick={() => { setEditingRent(monthlyRent); setShowRentModal(true); }}
+            style={{ fontSize: '12px' }}
+          >
+            ⚙️ 设置房租 (¥{monthlyRent})
+          </button>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
           <div>
             <div style={{ marginBottom: '12px' }}>
@@ -274,6 +336,7 @@ function RevenueManager() {
           </div>
         </div>
       </div>
+      )}
 
       {/* 每日明细表格 */}
       <div className="card">
