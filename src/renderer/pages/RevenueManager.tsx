@@ -58,13 +58,28 @@ function RevenueManager() {
         setRevenueData(result.data);
         setLastUpdate(new Date());
       } else {
-        setError(result.error || '加载失败');
+        setError(formatError(result.error));
       }
     } catch (err: any) {
-      setError(err.message || '加载失败');
+      setError(formatError(err.message));
     } finally {
       setLoading(false);
     }
+  };
+
+  // 格式化错误信息
+  const formatError = (msg?: string): string => {
+    if (!msg) return '加载失败，请重试';
+    if (msg.includes('fetch failed') || msg.includes('ECONNRESET') || msg.includes('network')) {
+      return '网络连接失败，请检查网络后重试';
+    }
+    if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+      return '连接超时，请稍后重试';
+    }
+    if (msg.includes('unauthorized') || msg.includes('401')) {
+      return '认证失败，请检查数据库配置';
+    }
+    return msg.length > 50 ? '服务器错误，请稍后重试' : msg;
   };
 
   useEffect(() => { loadRent(); }, []);
@@ -222,9 +237,19 @@ function RevenueManager() {
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '16px' }}>
-          {error}
-          <button onClick={loadData} style={{ marginLeft: '12px' }}>重试</button>
+        <div style={{ 
+          marginBottom: '16px', padding: '16px', borderRadius: '12px',
+          background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+          border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '12px'
+        }}>
+          <span style={{ fontSize: '24px' }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '4px' }}>加载失败</div>
+            <div style={{ fontSize: '14px', color: '#7f1d1d' }}>{error}</div>
+          </div>
+          <button className="btn btn-primary" onClick={loadData} style={{ background: '#dc2626' }}>
+            重试
+          </button>
         </div>
       )}
 

@@ -23,10 +23,26 @@ function Dashboard() {
   const [pieData, setPieData] = useState<DashboardPieData[]>([]);
   const [printerNames, setPrinterNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   
   // 选中的设备
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
+
+  // 格式化错误信息
+  const formatError = (msg?: string): string => {
+    if (!msg) return '加载失败，请重试';
+    if (msg.includes('fetch failed') || msg.includes('ECONNRESET') || msg.includes('network')) {
+      return '网络连接失败，请检查网络后重试';
+    }
+    if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+      return '连接超时，请稍后重试';
+    }
+    if (msg.includes('unauthorized') || msg.includes('401')) {
+      return '认证失败，请检查数据库配置';
+    }
+    return msg.length > 50 ? '服务器错误，请稍后重试' : msg;
+  };
 
   // 根据视图模式获取日期范围
   const getDateRange = () => {
@@ -91,6 +107,7 @@ function Dashboard() {
   // 加载数据
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const { start, end } = getDateRange();
       const prev = getPrevDateRange();
@@ -105,6 +122,8 @@ function Dashboard() {
       
       if (statsResult.success && statsResult.data) {
         setStats(statsResult.data);
+      } else if (statsResult.error) {
+        setError(formatError(statsResult.error));
       }
       if (chartResult.success && chartResult.data) {
         setChartData(chartResult.data);
@@ -122,8 +141,9 @@ function Dashboard() {
       }
       
       setLastUpdate(new Date());
-    } catch (error) {
-      console.error('加载数据失败:', error);
+    } catch (err: any) {
+      console.error('加载数据失败:', err);
+      setError(formatError(err.message));
     } finally {
       setLoading(false);
     }
@@ -199,6 +219,24 @@ function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* 错误提示 */}
+      {error && (
+        <div style={{ 
+          marginBottom: '16px', padding: '16px', borderRadius: '12px',
+          background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+          border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '12px'
+        }}>
+          <span style={{ fontSize: '24px' }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '4px' }}>加载失败</div>
+            <div style={{ fontSize: '14px', color: '#7f1d1d' }}>{error}</div>
+          </div>
+          <button className="btn btn-primary" onClick={loadData} style={{ background: '#dc2626' }}>
+            重试
+          </button>
+        </div>
+      )}
 
       {/* KPI 指标卡 */}
       <div className="kpi-grid">
