@@ -124,6 +124,9 @@ const electronAPI: ElectronAPI = {
   
   // 获取所有打印机统计数据
   getAllPrinterStats: () => ipcRenderer.invoke('get-all-printer-stats'),
+  
+  // 一键添加 printer_logs 表中的打印机
+  autoAddPrintersFromLogs: () => ipcRenderer.invoke('auto-add-printers-from-logs'),
 };
 
 // 使用 contextBridge 安全地暴露 API

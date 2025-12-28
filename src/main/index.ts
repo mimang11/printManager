@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -695,6 +695,46 @@ ipcMain.handle('get-all-printer-stats', async () => {
     return { success: true, data: stats };
   } catch (error: any) {
     console.error('获取打印机统计失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 一键添加 printer_logs 表中的所有打印机
+ */
+ipcMain.handle('auto-add-printers-from-logs', async () => {
+  try {
+    // 获取 printer_logs 中所有唯一的打印机
+    const uniquePrinters = await getUniquePrintersFromLogs();
+    
+    // 获取已存在的打印机
+    const existingPrinters = await getAllPrinters();
+    const existingIPs = new Set(existingPrinters.map(p => p.machine_ip));
+    
+    // 过滤出未添加的打印机
+    const newPrinters = uniquePrinters.filter(p => !existingIPs.has(p.machine_ip));
+    
+    if (newPrinters.length === 0) {
+      return { success: true, added: 0, message: '所有打印机已存在，无需添加' };
+    }
+    
+    // 批量添加
+    let addedCount = 0;
+    for (const printer of newPrinters) {
+      await dbAddPrinter({
+        machine_name: printer.machine_name,
+        machine_ip: printer.machine_ip,
+        printer_type: 'mono', // 默认黑白机
+        cost_per_page: 0.05,
+        price_per_page: 0.5,
+        status: 'online', // 因为在 logs 中存在，所以是在线
+      });
+      addedCount++;
+    }
+    
+    return { success: true, added: addedCount, message: `成功添加 ${addedCount} 台打印机` };
+  } catch (error: any) {
+    console.error('一键添加打印机失败:', error);
     return { success: false, error: error.message };
   }
 });

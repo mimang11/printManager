@@ -265,6 +265,7 @@ export interface ElectronAPI {
   // ========== IP 检查和统计 ==========
   checkIPExists: (machineIP: string) => Promise<{ success: boolean; data?: { exists: boolean; machine_name?: string }; error?: string }>;
   getAllPrinterStats: () => Promise<{ success: boolean; data?: PrinterStatsData[]; error?: string }>;
+  autoAddPrintersFromLogs: () => Promise<{ success: boolean; added?: number; message?: string; error?: string }>;
 }
 
 /** 打印机统计数据 */

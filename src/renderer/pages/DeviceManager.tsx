@@ -184,21 +184,22 @@ function DeviceManager() {
     return <span className={`status-badge ${statusMap[status] || 'status-offline'}`}>{labelMap[status] || '未知'}</span>;
   };
 
-  // 测试数据库连接
-  const [testingConnection, setTestingConnection] = useState(false);
-  const handleTestConnection = async () => {
-    setTestingConnection(true);
+  // 一键添加表中的打印机
+  const [autoAdding, setAutoAdding] = useState(false);
+  const handleAutoAddPrinters = async () => {
+    setAutoAdding(true);
     try {
-      const result = await window.electronAPI.testCloudConnection();
+      const result = await window.electronAPI.autoAddPrintersFromLogs();
       if (result.success) {
         alert('✅ ' + result.message);
+        loadPrinterStats(); // 刷新列表
       } else {
-        alert('❌ 连接失败: ' + result.error);
+        alert('❌ 添加失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('❌ 连接失败: ' + err.message);
+      alert('❌ 添加失败: ' + err.message);
     } finally {
-      setTestingConnection(false);
+      setAutoAdding(false);
     }
   };
 
@@ -213,10 +214,10 @@ function DeviceManager() {
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             className="btn btn-secondary"
-            onClick={handleTestConnection}
-            disabled={testingConnection}
+            onClick={handleAutoAddPrinters}
+            disabled={autoAdding}
           >
-            {testingConnection ? '⏳ 测试中...' : '🔗 测试连接'}
+            {autoAdding ? '⏳ 添加中...' : '📥 一键添加表中的打印机'}
           </button>
           <button 
             className={`btn ${showCost ? 'btn-primary' : 'btn-secondary'}`} 
@@ -250,9 +251,9 @@ function DeviceManager() {
                 <th>IP 地址</th>
                 <th>类型</th>
                 <th>状态</th>
-                <th>本月打印量</th>
+                <th>总打印量</th>
                 {showCost && <th>成本/售价</th>}
-                {showCost && <th>本月利润</th>}
+                {showCost && <th>总利润</th>}
                 <th>操作</th>
               </tr>
             </thead>
@@ -274,9 +275,9 @@ function DeviceManager() {
                   <td>{stat.printer.machine_ip}</td>
                   <td>{stat.printer.printer_type === 'color' ? '彩色机' : '黑白机'}</td>
                   <td>{renderStatus(stat.printer.status)}</td>
-                  <td>{stat.month_prints.toLocaleString()} 张</td>
+                  <td>{stat.total_prints.toLocaleString()} 张</td>
                   {showCost && <td>¥{stat.printer.cost_per_page} / ¥{stat.printer.price_per_page}</td>}
-                  {showCost && <td style={{ color: stat.month_profit >= 0 ? '#22c55e' : '#ef4444' }}>¥{stat.month_profit.toFixed(2)}</td>}
+                  {showCost && <td style={{ color: stat.total_profit >= 0 ? '#22c55e' : '#ef4444' }}>¥{stat.total_profit.toFixed(2)}</td>}
                   <td>
                     <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(stat.printer)} style={{ marginRight: '8px' }}>
                       编辑

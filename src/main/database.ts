@@ -425,6 +425,20 @@ export async function checkIPExistsInLogs(machineIP: string): Promise<{ exists: 
   return { exists: false };
 }
 
+/** 获取 printer_logs 中所有唯一的打印机 (用于一键添加) */
+export async function getUniquePrintersFromLogs(): Promise<{ machine_name: string; machine_ip: string }[]> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: 'SELECT DISTINCT machine_name, machine_ip FROM printer_logs ORDER BY machine_name',
+    args: [],
+  });
+  
+  return result.rows.map(row => ({
+    machine_name: row.machine_name as string,
+    machine_ip: row.machine_ip as string,
+  }));
+}
+
 /** 获取指定日期范围内的打印统计 (按打印机 IP 分组) */
 export async function getPrintStatsByDateRange(startDate: string, endDate: string): Promise<{
   machine_ip: string;
