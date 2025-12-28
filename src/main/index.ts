@@ -292,12 +292,6 @@ ipcMain.handle('get-records', async (_, printerId?: string, startDate?: string, 
   });
 });
 
-ipcMain.handle('get-dashboard-stats', async () => {
-  const config = await loadConfig();
-  const records = await loadRecords();
-  return calculateDashboardStats(config.printers, records);
-});
-
 ipcMain.handle('get-chart-data', async (_, days: number) => {
   const config = await loadConfig();
   const records = await loadRecords();
