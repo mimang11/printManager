@@ -279,6 +279,9 @@ export interface ElectronAPI {
   getDashboardStats: (startDate: string, endDate: string, prevStartDate: string, prevEndDate: string) => Promise<{ success: boolean; data?: DashboardStatsData; error?: string }>;
   getDashboardChart: (dates: string[]) => Promise<{ success: boolean; data?: DashboardChartPoint[]; error?: string }>;
   getDashboardPie: (startDate: string, endDate: string) => Promise<{ success: boolean; data?: DashboardPieData[]; error?: string }>;
+  
+  // ========== 打印机数据同步 ==========
+  syncPrinterData: () => Promise<{ success: boolean; data?: SyncResult; error?: string }>;
 }
 
 /** 看板统计数据 */
@@ -305,6 +308,14 @@ export interface DashboardPieData {
   name: string;
   value: number;
   percentage: number;
+}
+
+/** 打印机数据同步结果 */
+export interface SyncResult {
+  success: boolean;
+  synced: number;
+  failed: number;
+  details: { name: string; success: boolean; count?: number; error?: string }[];
 }
 
 /** 打印机统计数据 */

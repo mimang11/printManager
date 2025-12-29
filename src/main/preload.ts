@@ -154,6 +154,9 @@ const electronAPI: ElectronAPI = {
   
   // 获取看板饼图数据
   getDashboardPie: (startDate, endDate) => ipcRenderer.invoke('get-dashboard-pie', startDate, endDate),
+  
+  // 同步打印机数据
+  syncPrinterData: () => ipcRenderer.invoke('sync-printer-data'),
 };
 
 // 使用 contextBridge 安全地暴露 API

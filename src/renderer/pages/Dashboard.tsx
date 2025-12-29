@@ -23,8 +23,10 @@ function Dashboard() {
   const [pieData, setPieData] = useState<DashboardPieData[]>([]);
   const [printerNames, setPrinterNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   
   // 选中的设备
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
@@ -102,6 +104,30 @@ function Dashboard() {
       }
     }
     return dates;
+  };
+
+  // 同步打印机数据
+  const syncPrinterData = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const result = await window.electronAPI.syncPrinterData();
+      if (result.success && result.data) {
+        const { synced, failed, details } = result.data;
+        if (failed > 0) {
+          const failedNames = details.filter(d => !d.success).map(d => d.name).join(', ');
+          setSyncMessage(`同步完成: ${synced}台成功, ${failed}台失败 (${failedNames})`);
+        } else {
+          setSyncMessage(`同步完成: ${synced}台打印机数据已更新`);
+        }
+      } else {
+        setSyncMessage(`同步失败: ${result.error || '未知错误'}`);
+      }
+    } catch (err: any) {
+      setSyncMessage(`同步失败: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // 加载数据
@@ -214,11 +240,42 @@ function Dashboard() {
               {days.map(d => <option key={d} value={d}>{d}日</option>)}
             </select>
           )}
+          <button 
+            className="btn btn-secondary" 
+            onClick={async () => { await syncPrinterData(); loadData(); }} 
+            disabled={syncing || loading}
+            title="从打印机抓取最新数据并同步到云端"
+          >
+            {syncing ? '同步中...' : '🔄 同步数据'}
+          </button>
           <button className="btn btn-primary" onClick={loadData} disabled={loading}>
             {loading ? '加载中...' : '刷新'}
           </button>
         </div>
       </div>
+
+      {/* 同步消息提示 */}
+      {syncMessage && (
+        <div style={{ 
+          marginBottom: '16px', padding: '12px 16px', borderRadius: '12px',
+          background: syncMessage.includes('失败') 
+            ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' 
+            : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          border: syncMessage.includes('失败') ? '1px solid #fecaca' : '1px solid #bbf7d0',
+          display: 'flex', alignItems: 'center', gap: '12px'
+        }}>
+          <span style={{ fontSize: '18px' }}>{syncMessage.includes('失败') ? '⚠️' : '✅'}</span>
+          <span style={{ flex: 1, fontSize: '14px', color: syncMessage.includes('失败') ? '#dc2626' : '#16a34a' }}>
+            {syncMessage}
+          </span>
+          <button 
+            onClick={() => setSyncMessage(null)} 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#6b7280' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* 错误提示 */}
       {error && (

@@ -735,20 +735,30 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   const printers = await getAllPrinters();
   const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
   
-  // 获取当前周期数据
+  // 计算前一天日期（用于获取基准值）
+  const getBaseDateStr = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  };
+  
+  const currentBaseDate = getBaseDateStr(startDate);
+  const prevBaseDate = getBaseDateStr(prevStartDate);
+  
+  // 获取当前周期数据（包含前一天作为基准）
   const currentResult = await db.execute({
     sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
-    args: [startDate, endDate],
+    args: [currentBaseDate, endDate],
   });
   
-  // 获取前一周期数据
+  // 获取前一周期数据（包含前一天作为基准）
   const prevResult = await db.execute({
     sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
-    args: [prevStartDate, prevEndDate],
+    args: [prevBaseDate, prevEndDate],
   });
   
-  // 计算实际打印量 (累计差值)
-  const calcPrints = (rows: any[]) => {
+  // 计算实际打印量 (累计差值)，baseDate 是基准日期（不计入统计，仅作为第一天的前一天）
+  const calcPrints = (rows: any[], baseDate: string, actualStartDate: string) => {
     const ipDateMap = new Map<string, Map<string, number>>();
     for (const row of rows) {
       const ip = row.machine_ip as string;
@@ -766,7 +776,11 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
       const cost = printer?.cost_per_page || 0.05;
       
       for (let i = 0; i < dates.length; i++) {
-        const curr = dateMap.get(dates[i]) || 0;
+        const currentDate = dates[i];
+        // 跳过基准日期，它只用于计算第一天的差值
+        if (currentDate < actualStartDate) continue;
+        
+        const curr = dateMap.get(currentDate) || 0;
         const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
         const dailyPrints = Math.max(0, curr - prev);
         totalCount += dailyPrints;
@@ -777,8 +791,8 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
     return { totalCount, totalRevenue, totalCost };
   };
   
-  const current = calcPrints(currentResult.rows);
-  const prev = calcPrints(prevResult.rows);
+  const current = calcPrints(currentResult.rows, currentBaseDate, startDate);
+  const prev = calcPrints(prevResult.rows, prevBaseDate, prevStartDate);
   
   const countChange = prev.totalCount > 0 ? ((current.totalCount - prev.totalCount) / prev.totalCount) * 100 : 0;
   const revenueChange = prev.totalRevenue > 0 ? ((current.totalRevenue - prev.totalRevenue) / prev.totalRevenue) * 100 : 0;
@@ -852,10 +866,15 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
   const db = getDatabase();
   const printers = await getAllPrinters();
   
-  // 获取日期范围内的数据
+  // 计算前一天日期（用于获取基准值）
+  const baseDate = new Date(startDate);
+  baseDate.setDate(baseDate.getDate() - 1);
+  const baseDateStr = baseDate.toISOString().split('T')[0];
+  
+  // 获取日期范围内的数据（包含前一天作为基准）
   const logsResult = await db.execute({
     sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
-    args: [startDate, endDate],
+    args: [baseDateStr, endDate],
   });
   
   // 按 IP 分组计算实际打印量
@@ -880,7 +899,11 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
     const dates = Array.from(dateMap.keys()).sort();
     let total = 0;
     for (let i = 0; i < dates.length; i++) {
-      const curr = dateMap.get(dates[i]) || 0;
+      const currentDate = dates[i];
+      // 跳过基准日期，它只用于计算第一天的差值
+      if (currentDate < startDate) continue;
+      
+      const curr = dateMap.get(currentDate) || 0;
       const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
       total += Math.max(0, curr - prev);
     }
@@ -904,4 +927,128 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
   }
   
   return pieData.sort((a, b) => b.value - a.value);
+}
+
+// ============================================
+// 打印机数据同步功能
+// ============================================
+
+/** 打印机同步配置 */
+interface PrinterSyncConfig {
+  name: string;
+  ip: string;
+  url: string;
+}
+
+/** 同步结果 */
+export interface SyncResult {
+  success: boolean;
+  synced: number;
+  failed: number;
+  details: { name: string; success: boolean; count?: number; error?: string }[];
+}
+
+/** 从打印机网页抓取打印计数 */
+async function fetchPrintCount(url: string): Promise<number | null> {
+  try {
+    const response = await fetch(url, { 
+      signal: AbortSignal.timeout(10000) 
+    });
+    const html = await response.text();
+    
+    // 策略A: 匹配彩机 JS 变量格式 'Total Printed Impressions',279307
+    // 注意：可能是单引号或双引号
+    const jsMatch = html.match(/Total Printed Impressions['"]\s*,\s*(\d+)/i);
+    if (jsMatch) {
+      return parseInt(jsMatch[1], 10);
+    }
+    
+    // 策略B: 匹配普通机器 HTML 标签格式 >4677634<
+    const cleanHtml = html.replace(/\r/g, '').replace(/\n/g, '').replace(/\s+/g, ' ');
+    const tagMatches = cleanHtml.match(/>(\d+)</g);
+    if (tagMatches && tagMatches.length > 0) {
+      const firstMatch = tagMatches[0].match(/>(\d+)</);
+      if (firstMatch) {
+        return parseInt(firstMatch[1], 10);
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`抓取打印计数失败 (${url}):`, error);
+    return null;
+  }
+}
+
+/** 同步单台打印机数据到数据库 */
+async function syncSinglePrinter(db: Client, config: PrinterSyncConfig): Promise<{ success: boolean; count?: number; error?: string }> {
+  const printCount = await fetchPrintCount(config.url);
+  
+  if (printCount === null) {
+    return { success: false, error: '无法获取打印计数' };
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  
+  try {
+    await db.execute({
+      sql: `INSERT INTO printer_logs (machine_name, machine_ip, print_count, log_date, created_at) 
+            VALUES (?, ?, ?, ?, ?) 
+            ON CONFLICT(machine_ip, log_date) DO UPDATE SET 
+            print_count = excluded.print_count, created_at = excluded.created_at`,
+      args: [config.name, config.ip, printCount, today, now],
+    });
+    
+    return { success: true, count: printCount };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/** 同步所有打印机数据 */
+export async function syncAllPrinterData(): Promise<SyncResult> {
+  const db = getDatabase();
+  
+  // 从数据库获取打印机配置，构建抓取URL
+  const printers = await getAllPrinters();
+  
+  const syncConfigs: PrinterSyncConfig[] = printers.map(p => {
+    // 根据打印机类型确定抓取URL
+    const url = p.printer_type === 'color' 
+      ? `http://${p.machine_ip}/prcnt.htm`
+      : `http://${p.machine_ip}/web/guest/cn/websys/status/getUnificationCounter.cgi`;
+    
+    return {
+      name: p.machine_name,
+      ip: p.machine_ip,
+      url,
+    };
+  });
+  
+  const results: SyncResult = {
+    success: true,
+    synced: 0,
+    failed: 0,
+    details: [],
+  };
+  
+  for (const config of syncConfigs) {
+    const result = await syncSinglePrinter(db, config);
+    results.details.push({
+      name: config.name,
+      success: result.success,
+      count: result.count,
+      error: result.error,
+    });
+    
+    if (result.success) {
+      results.synced++;
+    } else {
+      results.failed++;
+    }
+  }
+  
+  results.success = results.failed === 0;
+  return results;
 }
