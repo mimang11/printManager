@@ -32,6 +32,9 @@ function Dashboard() {
   
   // 选中的设备
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
+  
+  // 金额隐藏状态（默认隐藏）
+  const [hideAmount, setHideAmount] = useState(true);
 
   // 格式化错误信息
   const formatError = (msg?: string): string => {
@@ -190,6 +193,9 @@ function Dashboard() {
   const periodLabel = viewMode === 'day' ? '当日' : viewMode === 'month' ? '本月' : '本年';
   const prevLabel = viewMode === 'day' ? '昨日' : viewMode === 'month' ? '上月' : '去年';
 
+  // 格式化金额（支持隐藏）
+  const formatAmount = (amount: number) => hideAmount ? '****' : `¥${amount.toFixed(2)}`;
+
   const formatTimestamp = (date: Date) => date.toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
@@ -298,8 +304,20 @@ function Dashboard() {
           </div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label">{periodLabel}预估营收</div>
-          <div className="kpi-value">¥{(stats?.totalRevenue || 0).toFixed(2)}</div>
+          <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{periodLabel}预估营收</span>
+            <button 
+              onClick={() => setHideAmount(!hideAmount)} 
+              style={{ 
+                background: 'none', border: 'none', cursor: 'pointer', 
+                fontSize: '16px', padding: '0 4px', opacity: 0.6 
+              }}
+              title={hideAmount ? '显示金额' : '隐藏金额'}
+            >
+              {hideAmount ? '👁️' : '🙈'}
+            </button>
+          </div>
+          <div className="kpi-value">{formatAmount(stats?.totalRevenue || 0)}</div>
           <div className={`kpi-change ${(stats?.revenueChange || 0) >= 0 ? 'positive' : 'negative'}`}>
             {(stats?.revenueChange || 0) >= 0 ? '↑' : '↓'} {Math.abs(stats?.revenueChange || 0)}% 环比{prevLabel}
           </div>
@@ -313,8 +331,8 @@ function Dashboard() {
               background: '#e5e7eb', color: '#6b7280', fontSize: '11px', cursor: 'help', fontWeight: 600 
             }}>i</span>
           </div>
-          <div className="kpi-value">¥{(stats?.totalProfit || 0).toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: ¥{(stats?.totalCost || 0).toFixed(2)}</div>
+          <div className="kpi-value">{formatAmount(stats?.totalProfit || 0)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: {formatAmount(stats?.totalCost || 0)}</div>
         </div>
       </div>
 
