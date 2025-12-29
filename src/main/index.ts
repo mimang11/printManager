@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -851,6 +851,19 @@ ipcMain.handle('sync-printer-data', async () => {
     return { success: true, data: result };
   } catch (error: any) {
     console.error('同步打印机数据失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 获取云端数据对比
+ */
+ipcMain.handle('get-cloud-comparison', async (_, machineIP?: string) => {
+  try {
+    const data = await getCloudComparisonData(machineIP);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('获取数据对比失败:', error);
     return { success: false, error: error.message };
   }
 });

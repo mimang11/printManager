@@ -283,6 +283,9 @@ export interface ElectronAPI {
   
   // ========== 打印机数据同步 ==========
   syncPrinterData: () => Promise<{ success: boolean; data?: SyncResult; error?: string }>;
+  
+  // ========== 云端数据对比 ==========
+  getCloudComparison: (machineIP?: string) => Promise<{ success: boolean; data?: CloudComparisonData; error?: string }>;
 }
 
 /** 看板统计数据 */
@@ -317,6 +320,28 @@ export interface SyncResult {
   synced: number;
   failed: number;
   details: { name: string; success: boolean; count?: number; error?: string }[];
+}
+
+/** 云端数据对比结果 */
+export interface CloudComparisonData {
+  day_over_day: {
+    yesterday: number;
+    today: number;
+    change: number;
+    change_percent: number;
+  };
+  week_over_week: {
+    last_week: number;
+    this_week: number;
+    change: number;
+    change_percent: number;
+  };
+  month_over_month: {
+    last_month: number;
+    this_month: number;
+    change: number;
+    change_percent: number;
+  };
 }
 
 /** 打印机统计数据 */

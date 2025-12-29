@@ -157,6 +157,9 @@ const electronAPI: ElectronAPI = {
   
   // 同步打印机数据
   syncPrinterData: () => ipcRenderer.invoke('sync-printer-data'),
+  
+  // 获取云端数据对比
+  getCloudComparison: (machineIP) => ipcRenderer.invoke('get-cloud-comparison', machineIP),
 };
 
 // 使用 contextBridge 安全地暴露 API

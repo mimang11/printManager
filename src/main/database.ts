@@ -1062,3 +1062,141 @@ export async function syncAllPrinterData(): Promise<SyncResult> {
   results.success = results.failed === 0;
   return results;
 }
+
+// ============================================
+// 数据对比功能 (云端)
+// ============================================
+
+/** 云端数据对比结果 */
+export interface CloudComparisonData {
+  day_over_day: {
+    yesterday: number;
+    today: number;
+    change: number;
+    change_percent: number;
+  };
+  week_over_week: {
+    last_week: number;
+    this_week: number;
+    change: number;
+    change_percent: number;
+  };
+  month_over_month: {
+    last_month: number;
+    this_month: number;
+    change: number;
+    change_percent: number;
+  };
+}
+
+/** 计算指定日期范围内的实际印量 (累计差值) */
+async function calcPrintCountForRange(startDate: string, endDate: string, machineIP?: string): Promise<number> {
+  const db = getDatabase();
+  
+  // 获取前一天作为基准
+  const baseDate = new Date(startDate);
+  baseDate.setDate(baseDate.getDate() - 1);
+  const baseDateStr = baseDate.toISOString().split('T')[0];
+  
+  let sql = `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ?`;
+  const args: any[] = [baseDateStr, endDate];
+  
+  if (machineIP) {
+    sql += ` AND machine_ip = ?`;
+    args.push(machineIP);
+  }
+  sql += ` ORDER BY machine_ip, log_date`;
+  
+  const result = await db.execute({ sql, args });
+  
+  // 按 IP 分组计算
+  const ipDateMap = new Map<string, Map<string, number>>();
+  for (const row of result.rows) {
+    const ip = row.machine_ip as string;
+    const date = row.log_date as string;
+    const count = Number(row.print_count) || 0;
+    if (!ipDateMap.has(ip)) ipDateMap.set(ip, new Map());
+    ipDateMap.get(ip)!.set(date, count);
+  }
+  
+  let totalCount = 0;
+  for (const [ip, dateMap] of ipDateMap) {
+    const dates = Array.from(dateMap.keys()).sort();
+    for (let i = 0; i < dates.length; i++) {
+      const currentDate = dates[i];
+      if (currentDate < startDate) continue; // 跳过基准日期
+      const curr = dateMap.get(currentDate) || 0;
+      const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
+      totalCount += Math.max(0, curr - prev);
+    }
+  }
+  
+  return totalCount;
+}
+
+/** 获取云端数据对比 */
+export async function getCloudComparisonData(machineIP?: string): Promise<CloudComparisonData> {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  // 昨天
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  
+  // 本周开始 (周一)
+  const thisWeekStart = new Date(today);
+  const dayOfWeek = thisWeekStart.getDay() || 7;
+  thisWeekStart.setDate(thisWeekStart.getDate() - dayOfWeek + 1);
+  const thisWeekStartStr = thisWeekStart.toISOString().split('T')[0];
+  
+  // 上周
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0];
+  const lastWeekEnd = new Date(thisWeekStart);
+  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+  const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0];
+  
+  // 本月开始
+  const thisMonthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  
+  // 上月
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthStart = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+  const lastMonthEndStr = lastMonthEnd.toISOString().split('T')[0];
+  
+  // 并行计算各时间段数据
+  const [todayCount, yesterdayCount, thisWeekCount, lastWeekCount, thisMonthCount, lastMonthCount] = await Promise.all([
+    calcPrintCountForRange(todayStr, todayStr, machineIP),
+    calcPrintCountForRange(yesterdayStr, yesterdayStr, machineIP),
+    calcPrintCountForRange(thisWeekStartStr, todayStr, machineIP),
+    calcPrintCountForRange(lastWeekStartStr, lastWeekEndStr, machineIP),
+    calcPrintCountForRange(thisMonthStart, todayStr, machineIP),
+    calcPrintCountForRange(lastMonthStart, lastMonthEndStr, machineIP),
+  ]);
+  
+  const calcChange = (current: number, previous: number) => ({
+    change: current - previous,
+    change_percent: previous > 0 ? Math.round(((current - previous) / previous) * 1000) / 10 : 0,
+  });
+  
+  return {
+    day_over_day: {
+      yesterday: yesterdayCount,
+      today: todayCount,
+      ...calcChange(todayCount, yesterdayCount),
+    },
+    week_over_week: {
+      last_week: lastWeekCount,
+      this_week: thisWeekCount,
+      ...calcChange(thisWeekCount, lastWeekCount),
+    },
+    month_over_month: {
+      last_month: lastMonthCount,
+      this_month: thisMonthCount,
+      ...calcChange(thisMonthCount, lastMonthCount),
+    },
+  };
+}
