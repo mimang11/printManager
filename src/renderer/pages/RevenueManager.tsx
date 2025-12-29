@@ -40,6 +40,7 @@ function RevenueManager() {
   const [newWasteNote, setNewWasteNote] = useState('');
   const [newWasteOperator, setNewWasteOperator] = useState('');
   const [wasteLoading, setWasteLoading] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null); // 删除确认弹窗
 
   // 加载月租金
   const loadRent = async () => {
@@ -144,6 +145,10 @@ function RevenueManager() {
       alert('请输入损耗数量');
       return;
     }
+    if (newWasteCount > maxNewWaste) {
+      alert(`损耗数量不能超过 ${maxNewWaste} 张（当前印量 ${wasteMaxCount} - 已损耗 ${currentTotalWaste}）`);
+      return;
+    }
     if (!newWasteOperator.trim()) {
       alert('请输入操作人');
       return;
@@ -172,23 +177,32 @@ function RevenueManager() {
 
   // 删除损耗记录
   const handleDeleteWaste = async (id: number) => {
-    if (!confirm('确定删除此损耗记录？')) return;
+    setDeleteConfirmId(id); // 显示确认弹窗
+  };
+
+  // 确认删除
+  const confirmDeleteWaste = async () => {
+    if (deleteConfirmId === null) return;
     
     try {
-      const result = await window.electronAPI.deleteWasteRecord(id);
+      const result = await window.electronAPI.deleteWasteRecord(deleteConfirmId);
       if (result.success) {
-        setWasteRecords(wasteRecords.filter(r => r.id !== id));
-        loadData(); // 刷新主数据
+        setWasteRecords(prev => prev.filter(r => r.id !== deleteConfirmId));
+        loadData();
       } else {
         alert('删除失败: ' + result.error);
       }
     } catch (err: any) {
       alert('删除失败: ' + err.message);
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
   // 计算当前总损耗
   const currentTotalWaste = wasteRecords.reduce((sum, r) => sum + r.waste_count, 0);
+  // 计算可添加的最大损耗数量
+  const maxNewWaste = Math.max(0, wasteMaxCount - currentTotalWaste);
 
   // 保存月租金
   const handleSaveRent = async () => {
@@ -670,22 +684,27 @@ function RevenueManager() {
                 <div style={{ fontWeight: 600, marginBottom: '12px', color: '#854d0e' }}>➕ 添加损耗记录</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">损耗数量 (张) *</label>
-                    <input type="number" min="1" className="form-input" value={newWasteCount || ''}
-                      onChange={(e) => setNewWasteCount(parseInt(e.target.value) || 0)} placeholder="输入数量" />
+                    <label className="form-label">损耗数量 (张) * <span style={{ color: '#6b7280', fontWeight: 'normal' }}>最多 {maxNewWaste}</span></label>
+                    <input type="number" min="1" max={maxNewWaste} className="form-input" value={newWasteCount === 0 ? '' : newWasteCount}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                        setNewWasteCount(Math.min(val, maxNewWaste));
+                      }} placeholder="输入数量" disabled={maxNewWaste <= 0} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label">操作人 *</label>
                     <input type="text" className="form-input" value={newWasteOperator}
-                      onChange={(e) => setNewWasteOperator(e.target.value)} placeholder="输入操作人" />
+                      onChange={(e) => setNewWasteOperator(e.target.value)} placeholder="输入操作人" autoComplete="off" />
                   </div>
                 </div>
                 <div className="form-group" style={{ marginTop: '12px', marginBottom: '12px' }}>
                   <label className="form-label">备注</label>
                   <input type="text" className="form-input" value={newWasteNote}
-                    onChange={(e) => setNewWasteNote(e.target.value)} placeholder="如：卡纸、错打等" />
+                    onChange={(e) => setNewWasteNote(e.target.value)} placeholder="如：卡纸、错打等" autoComplete="off" />
                 </div>
-                <button className="btn btn-primary" onClick={handleAddWaste} style={{ width: '100%' }}>添加损耗记录</button>
+                <button className="btn btn-primary" onClick={handleAddWaste} style={{ width: '100%' }} disabled={maxNewWaste <= 0}>
+                  {maxNewWaste <= 0 ? '已达到最大损耗数量' : '添加损耗记录'}
+                </button>
               </div>
               
               {/* 已有损耗记录列表 */}
@@ -718,6 +737,19 @@ function RevenueManager() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowWasteModal(false)}>关闭</button>
             </div>
+
+            {/* 删除确认弹窗 */}
+            {deleteConfirmId !== null && (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+                <div style={{ background: 'white', padding: '24px', borderRadius: '12px', textAlign: 'center', maxWidth: '300px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>确定删除此损耗记录？</div>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                    <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>取消</button>
+                    <button className="btn" style={{ background: '#dc2626', color: 'white' }} onClick={confirmDeleteWaste}>删除</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

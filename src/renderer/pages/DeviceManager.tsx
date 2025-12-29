@@ -41,6 +41,9 @@ function DeviceManager() {
   
   // 保存状态
   const [saving, setSaving] = useState(false);
+  
+  // 删除确认弹窗
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
 
   // 加载打印机统计数据
   const loadPrinterStats = async () => {
@@ -107,10 +110,15 @@ function DeviceManager() {
   };
 
   // 删除打印机
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`确定要删除打印机 "${name}" 吗？`)) return;
+  const handleDelete = (id: number, name: string) => {
+    setDeleteConfirm({ id, name });
+  };
+
+  // 确认删除打印机
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      const result = await window.electronAPI.deleteCloudPrinter(id);
+      const result = await window.electronAPI.deleteCloudPrinter(deleteConfirm.id);
       if (result.success) {
         loadPrinterStats();
       } else {
@@ -118,6 +126,8 @@ function DeviceManager() {
       }
     } catch (err: any) {
       alert('删除失败: ' + err.message);
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -404,6 +414,27 @@ function DeviceManager() {
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? '保存中...' : '保存'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认弹窗 */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">确认删除</h2>
+              <button className="modal-close" onClick={() => setDeleteConfirm(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ textAlign: 'center', fontSize: '16px' }}>
+                确定要删除打印机 "<strong>{deleteConfirm.name}</strong>" 吗？
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>取消</button>
+              <button className="btn" style={{ background: '#dc2626', color: 'white' }} onClick={confirmDelete}>删除</button>
             </div>
           </div>
         </div>
