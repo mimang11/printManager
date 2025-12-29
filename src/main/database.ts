@@ -644,7 +644,7 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
   return Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** 更新损耗记录 */
+/** 更新损耗记录 (旧方法，保留兼容) */
 export async function updateWasteRecord(machineIP: string, wasteDate: string, wasteCount: number): Promise<void> {
   const db = getDatabase();
   await db.execute({
@@ -652,6 +652,107 @@ export async function updateWasteRecord(machineIP: string, wasteDate: string, wa
           ON CONFLICT(machine_ip, waste_date) DO UPDATE SET waste_count = ?`,
     args: [machineIP, wasteDate, wasteCount, wasteCount],
   });
+}
+
+/** 损耗记录详情 */
+export interface WasteRecordDetail {
+  id: number;
+  machine_ip: string;
+  waste_date: string;
+  waste_count: number;
+  note: string;
+  operator: string;
+  created_at: string;
+}
+
+/** 获取某天某打印机的所有损耗记录 */
+export async function getWasteRecords(machineIP: string, wasteDate: string): Promise<WasteRecordDetail[]> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: `SELECT id, machine_ip, waste_date, waste_count, COALESCE(note, '') as note, COALESCE(operator, '') as operator, created_at 
+          FROM waste_records_detail WHERE machine_ip = ? AND waste_date = ? ORDER BY created_at DESC`,
+    args: [machineIP, wasteDate],
+  });
+  return result.rows.map(row => ({
+    id: row.id as number,
+    machine_ip: row.machine_ip as string,
+    waste_date: row.waste_date as string,
+    waste_count: row.waste_count as number,
+    note: row.note as string,
+    operator: row.operator as string,
+    created_at: row.created_at as string,
+  }));
+}
+
+/** 添加损耗记录 */
+export async function addWasteRecord(data: { machineIP: string; wasteDate: string; wasteCount: number; note: string; operator: string }): Promise<WasteRecordDetail> {
+  const db = getDatabase();
+  await db.execute({
+    sql: `INSERT INTO waste_records_detail (machine_ip, waste_date, waste_count, note, operator) VALUES (?, ?, ?, ?, ?)`,
+    args: [data.machineIP, data.wasteDate, data.wasteCount, data.note, data.operator],
+  });
+  
+  // 同步更新汇总表
+  await syncWasteSummary(data.machineIP, data.wasteDate);
+  
+  // 返回最新插入的记录
+  const result = await db.execute({
+    sql: `SELECT id, machine_ip, waste_date, waste_count, note, operator, created_at FROM waste_records_detail 
+          WHERE machine_ip = ? AND waste_date = ? ORDER BY id DESC LIMIT 1`,
+    args: [data.machineIP, data.wasteDate],
+  });
+  const row = result.rows[0];
+  return {
+    id: row.id as number,
+    machine_ip: row.machine_ip as string,
+    waste_date: row.waste_date as string,
+    waste_count: row.waste_count as number,
+    note: row.note as string,
+    operator: row.operator as string,
+    created_at: row.created_at as string,
+  };
+}
+
+/** 删除损耗记录 */
+export async function deleteWasteRecord(id: number): Promise<{ machineIP: string; wasteDate: string }> {
+  const db = getDatabase();
+  // 先获取记录信息
+  const record = await db.execute({ sql: 'SELECT machine_ip, waste_date FROM waste_records_detail WHERE id = ?', args: [id] });
+  if (record.rows.length === 0) throw new Error('记录不存在');
+  
+  const machineIP = record.rows[0].machine_ip as string;
+  const wasteDate = record.rows[0].waste_date as string;
+  
+  await db.execute({ sql: 'DELETE FROM waste_records_detail WHERE id = ?', args: [id] });
+  
+  // 同步更新汇总表
+  await syncWasteSummary(machineIP, wasteDate);
+  
+  return { machineIP, wasteDate };
+}
+
+/** 同步损耗汇总表 */
+async function syncWasteSummary(machineIP: string, wasteDate: string): Promise<void> {
+  const db = getDatabase();
+  // 计算该打印机该天的总损耗
+  const sumResult = await db.execute({
+    sql: 'SELECT COALESCE(SUM(waste_count), 0) as total FROM waste_records_detail WHERE machine_ip = ? AND waste_date = ?',
+    args: [machineIP, wasteDate],
+  });
+  const totalWaste = Number(sumResult.rows[0]?.total) || 0;
+  
+  if (totalWaste > 0) {
+    await db.execute({
+      sql: `INSERT INTO waste_records (machine_ip, waste_date, waste_count) VALUES (?, ?, ?)
+            ON CONFLICT(machine_ip, waste_date) DO UPDATE SET waste_count = ?`,
+      args: [machineIP, wasteDate, totalWaste, totalWaste],
+    });
+  } else {
+    await db.execute({
+      sql: 'DELETE FROM waste_records WHERE machine_ip = ? AND waste_date = ?',
+      args: [machineIP, wasteDate],
+    });
+  }
 }
 
 /** 添加其他收入 (云端) */

@@ -76,26 +76,56 @@ CREATE INDEX idx_other_revenues_date ON other_revenues(revenue_date);
 
 ---
 
-### 4. waste_records - 损耗记录表
+### 4. waste_records - 损耗汇总表
 
-存储每台打印机每天的损耗数量（卡纸、错打等）。
+存储每台打印机每天的损耗汇总数量（由 waste_records_detail 自动同步）。
 
 ```sql
 CREATE TABLE waste_records (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   machine_ip TEXT NOT NULL,           -- 打印机 IP 地址
   waste_date TEXT NOT NULL,           -- 日期 YYYY-MM-DD
-  waste_count INTEGER NOT NULL DEFAULT 0,  -- 损耗数量
+  waste_count INTEGER NOT NULL DEFAULT 0,  -- 损耗数量汇总
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 唯一约束：每台打印机每天只有一条损耗记录
+-- 唯一约束：每台打印机每天只有一条汇总记录
 CREATE UNIQUE INDEX idx_waste_machine_date ON waste_records(machine_ip, waste_date);
 ```
 
-**字段说明：** | 字段 | 类型 | 说明 | |------|------|------| | id | INTEGER | 自增主键 | | machine_ip | TEXT | 打印机 IP 地址 | | waste_date | TEXT | 日期，格式 YYYY-MM-DD | | waste_count | INTEGER | 损耗数量 | | created_at | DATETIME | 创建时间 |
+---
 
-**注意：** `printer_logs` 表中的 `print_count` 是累计值，实际当天打印量 = 当天累计值 - 前一天累计值
+### 4.1 waste_records_detail - 损耗明细表
+
+存储每条损耗记录的详细信息（支持多条记录）。
+
+```sql
+CREATE TABLE waste_records_detail (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  machine_ip TEXT NOT NULL,           -- 打印机 IP 地址
+  waste_date TEXT NOT NULL,           -- 日期 YYYY-MM-DD
+  waste_count INTEGER NOT NULL DEFAULT 0,  -- 损耗数量
+  note TEXT DEFAULT '',               -- 备注（如：卡纸、错打等）
+  operator TEXT DEFAULT '',           -- 操作人
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 索引
+CREATE INDEX idx_waste_detail_machine_date ON waste_records_detail(machine_ip, waste_date);
+```
+
+**字段说明：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INTEGER | 自增主键 |
+| machine_ip | TEXT | 打印机 IP 地址 |
+| waste_date | TEXT | 日期，格式 YYYY-MM-DD |
+| waste_count | INTEGER | 损耗数量 |
+| note | TEXT | 备注说明 |
+| operator | TEXT | 操作人 |
+| created_at | DATETIME | 创建时间 |
+
+**注意：** `waste_records` 表的 `waste_count` 由 `waste_records_detail` 表自动汇总同步
 
 ---
 
@@ -168,7 +198,7 @@ CREATE TABLE IF NOT EXISTS other_revenues (
 
 CREATE INDEX IF NOT EXISTS idx_other_revenues_date ON other_revenues(revenue_date);
 
--- 4. 创建损耗记录表
+-- 4. 创建损耗汇总表
 CREATE TABLE IF NOT EXISTS waste_records (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   machine_ip TEXT NOT NULL,
@@ -178,6 +208,19 @@ CREATE TABLE IF NOT EXISTS waste_records (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_waste_machine_date ON waste_records(machine_ip, waste_date);
+
+-- 4.1 创建损耗明细表
+CREATE TABLE IF NOT EXISTS waste_records_detail (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  machine_ip TEXT NOT NULL,
+  waste_date TEXT NOT NULL,
+  waste_count INTEGER NOT NULL DEFAULT 0,
+  note TEXT DEFAULT '',
+  operator TEXT DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_waste_detail_machine_date ON waste_records_detail(machine_ip, waste_date);
 
 -- 5. 创建系统设置表
 CREATE TABLE IF NOT EXISTS settings (

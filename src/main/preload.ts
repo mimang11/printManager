@@ -24,6 +24,9 @@ const electronAPI: ElectronAPI = {
   getCloudMonthlyRevenue: (year, month) => ipcRenderer.invoke('get-cloud-monthly-revenue', year, month),
   addCloudOtherRevenue: (data) => ipcRenderer.invoke('add-cloud-other-revenue', data),
   updateCloudWaste: (machineIP, wasteDate, wasteCount) => ipcRenderer.invoke('update-cloud-waste', machineIP, wasteDate, wasteCount),
+  getWasteRecords: (machineIP, wasteDate) => ipcRenderer.invoke('get-waste-records', machineIP, wasteDate),
+  addWasteRecord: (data) => ipcRenderer.invoke('add-waste-record', data),
+  deleteWasteRecord: (id) => ipcRenderer.invoke('delete-waste-record', id),
 
   // 系统设置
   getMonthlyRent: () => ipcRenderer.invoke('get-monthly-rent'),

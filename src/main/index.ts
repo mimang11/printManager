@@ -10,7 +10,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fetchPrinterDetail } from './scraper';
-import { initDatabase, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData, getAllCodeNotes, saveCodeNote, importCodeNotes } from './database';
+import { initDatabase, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData, getAllCodeNotes, saveCodeNote, importCodeNotes, getWasteRecords, addWasteRecord, deleteWasteRecord } from './database';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -188,6 +188,36 @@ ipcMain.handle('update-cloud-waste', async (_, machineIP: string, wasteDate: str
     return { success: true };
   } catch (error: any) {
     console.error('更新损耗记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-waste-records', async (_, machineIP: string, wasteDate: string) => {
+  try {
+    const records = await getWasteRecords(machineIP, wasteDate);
+    return { success: true, data: records };
+  } catch (error: any) {
+    console.error('获取损耗记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('add-waste-record', async (_, data: { machineIP: string; wasteDate: string; wasteCount: number; note: string; operator: string }) => {
+  try {
+    const record = await addWasteRecord(data);
+    return { success: true, data: record };
+  } catch (error: any) {
+    console.error('添加损耗记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-waste-record', async (_, id: number) => {
+  try {
+    const result = await deleteWasteRecord(id);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('删除损耗记录失败:', error);
     return { success: false, error: error.message };
   }
 });

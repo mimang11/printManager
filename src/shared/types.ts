@@ -21,6 +21,17 @@ export interface CloudPrinterConfig {
   updated_at: string;
 }
 
+/** 损耗记录详情 */
+export interface WasteRecordDetail {
+  id: number;
+  machine_ip: string;
+  waste_date: string;
+  waste_count: number;
+  note: string;
+  operator: string;
+  created_at: string;
+}
+
 /** IPC 通信的 API 接口定义 */
 export interface ElectronAPI {
   // 打印机详情
@@ -41,6 +52,9 @@ export interface ElectronAPI {
   getCloudMonthlyRevenue: (year: number, month: number) => Promise<{ success: boolean; data?: CloudMonthlyRevenueData[]; error?: string }>;
   addCloudOtherRevenue: (data: { date: string; amount: number; description: string; category: string }) => Promise<{ success: boolean; error?: string }>;
   updateCloudWaste: (machineIP: string, wasteDate: string, wasteCount: number) => Promise<{ success: boolean; error?: string }>;
+  getWasteRecords: (machineIP: string, wasteDate: string) => Promise<{ success: boolean; data?: WasteRecordDetail[]; error?: string }>;
+  addWasteRecord: (data: { machineIP: string; wasteDate: string; wasteCount: number; note: string; operator: string }) => Promise<{ success: boolean; data?: WasteRecordDetail; error?: string }>;
+  deleteWasteRecord: (id: number) => Promise<{ success: boolean; data?: { machineIP: string; wasteDate: string }; error?: string }>;
   
   // 系统设置
   getMonthlyRent: () => Promise<{ success: boolean; data?: number; error?: string }>;
