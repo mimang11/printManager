@@ -190,6 +190,19 @@ CREATE TABLE IF NOT EXISTS settings (
 
 -- 初始化默认设置
 INSERT OR IGNORE INTO settings (setting_key, setting_value, description) VALUES ('monthly_rent', '150', '月租金（元）');
+
+-- 6. 创建代码备注表
+CREATE TABLE IF NOT EXISTS code_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code_type TEXT NOT NULL,            -- 代码类型: 'sp' 或 'error'
+  code TEXT NOT NULL,                 -- 代码，如 SP5801, SC300
+  note TEXT NOT NULL,                 -- 备注内容
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 唯一约束：每个代码类型+代码只有一条备注
+CREATE UNIQUE INDEX IF NOT EXISTS idx_code_notes_unique ON code_notes(code_type, code);
 ```
 
 ---

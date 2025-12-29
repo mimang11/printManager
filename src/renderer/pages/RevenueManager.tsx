@@ -195,13 +195,21 @@ function RevenueManager() {
   // 使用云端月租金
   const fixedCost = monthlyRent;
   
-  // 盈亏平衡分析
-  const avgProfitPerPage = monthTotals.totalCount > 0 
-    ? (monthTotals.totalRevenue - monthTotals.totalCost) / monthTotals.totalCount : 0;
-  const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - fixedCost + monthTotals.otherIncome;
-  const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil(fixedCost / avgProfitPerPage) : 0;
+  // 总成本 = 耗材成本 + 损耗损失 + 房租
+  const totalAllCost = monthTotals.totalCost + wasteCost + fixedCost;
+  
+  // 盈亏平衡分析 - 考虑损耗
+  // 有效印量 = 总印量 - 损耗
+  const effectiveCount = monthTotals.totalCount - monthTotals.wasteCount;
+  // 平均单张利润 = (营收 - 耗材成本) / 有效印量
+  const avgProfitPerPage = effectiveCount > 0 
+    ? (monthTotals.totalRevenue - monthTotals.totalCost) / effectiveCount : 0;
+  // 当前利润 = 营收 - 耗材成本 - 损耗损失 - 房租 + 其他收入
+  const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - wasteCost - fixedCost + monthTotals.otherIncome;
+  // 回本所需印量 = (房租 + 损耗损失) / 平均单张利润
+  const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil((fixedCost + wasteCost) / avgProfitPerPage) : 0;
   const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) : 0;
-  const breakEvenProgress = breakEvenPages > 0 ? Math.min((monthTotals.totalCount / breakEvenPages) * 100, 100) : 0;
+  const breakEvenProgress = breakEvenPages > 0 ? Math.min((effectiveCount / breakEvenPages) * 100, 100) : 0;
   const isBreakEven = currentProfit >= 0;
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
@@ -274,8 +282,10 @@ function RevenueManager() {
         </div>
         <div className="kpi-card">
           <div className="kpi-label">本月总成本</div>
-          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + fixedCost).toFixed(2)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}</div>
+          <div className="kpi-value" style={{ color: '#ef4444' }}>¥{totalAllCost.toFixed(2)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280', fontSize: '12px' }}>
+            耗材 ¥{monthTotals.totalCost.toFixed(0)} + 损耗 ¥{wasteCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}
+          </div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">本月损耗</div>
@@ -313,6 +323,19 @@ function RevenueManager() {
               <span style={{ fontWeight: 600, color: '#ef4444' }}>¥{fixedCost.toFixed(0)}</span>
             </div>
             <div style={{ marginBottom: '12px' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>耗材成本：</span>
+              <span style={{ fontWeight: 600, color: '#ef4444' }}>¥{monthTotals.totalCost.toFixed(2)}</span>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>损耗损失：</span>
+              <span style={{ fontWeight: 600, color: '#f59e0b' }}>¥{wasteCost.toFixed(2)}</span>
+              <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '4px' }}>({monthTotals.wasteCount}张)</span>
+            </div>
+            <div style={{ marginBottom: '12px', paddingTop: '8px', borderTop: '1px dashed #e5e7eb' }}>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>总成本合计：</span>
+              <span style={{ fontWeight: 700, color: '#dc2626' }}>¥{totalAllCost.toFixed(2)}</span>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
               <span style={{ color: '#6b7280', fontSize: '14px' }}>平均单张利润：</span>
               <span style={{ fontWeight: 600, color: '#3b82f6' }}>¥{avgProfitPerPage.toFixed(3)}</span>
             </div>
@@ -321,8 +344,9 @@ function RevenueManager() {
               <span style={{ fontWeight: 600 }}>{breakEvenPages.toLocaleString()} 张</span>
             </div>
             <div>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>本月已打印：</span>
-              <span style={{ fontWeight: 600, color: '#22c55e' }}>{monthTotals.totalCount.toLocaleString()} 张</span>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>有效印量：</span>
+              <span style={{ fontWeight: 600, color: '#22c55e' }}>{effectiveCount.toLocaleString()} 张</span>
+              <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '4px' }}>(总{monthTotals.totalCount.toLocaleString()}张)</span>
             </div>
           </div>
           <div>
