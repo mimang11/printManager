@@ -824,46 +824,89 @@ export async function getDashboardChartData(dates: string[]): Promise<DashboardC
   
   const result: DashboardChartPoint[] = [];
   
-  for (const date of dates) {
-    // 获取前一天日期
-    const prevDate = new Date(date);
-    prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-    
-    // 获取当天和前一天的数据
-    const logsResult = await db.execute({
-      sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date IN (?, ?) ORDER BY machine_ip`,
-      args: [prevDateStr, date],
-    });
-    
-    const dataPoint: DashboardChartPoint = { date: date.slice(5), count: 0 };
-    
-    // 按 IP 分组计算
-    const ipMap = new Map<string, { prev: number; curr: number; name: string }>();
-    for (const row of logsResult.rows) {
-      const ip = row.machine_ip as string;
-      const logDate = row.log_date as string;
-      const count = Number(row.print_count) || 0;
-      const name = row.machine_name as string;
+  for (const dateParam of dates) {
+    // 检查是否是日期范围格式 (YYYY-MM-DD~YYYY-MM-DD)
+    if (dateParam.includes('~')) {
+      // 月度汇总模式
+      const [startDate, endDate] = dateParam.split('~');
+      const month = startDate.slice(5, 7); // 提取月份用于显示
       
-      if (!ipMap.has(ip)) ipMap.set(ip, { prev: 0, curr: 0, name });
-      const entry = ipMap.get(ip)!;
-      if (logDate === prevDateStr) entry.prev = count;
-      else if (logDate === date) entry.curr = count;
-    }
-    
-    // 计算每台打印机的实际打印量
-    for (const [ip, data] of ipMap) {
-      const dailyPrints = Math.max(0, data.curr - data.prev);
-      dataPoint.count += dailyPrints;
+      // 获取月初前一天作为基准
+      const baseDate = new Date(startDate);
+      baseDate.setDate(baseDate.getDate() - 1);
+      const baseDateStr = baseDate.toISOString().split('T')[0];
       
-      // 查找打印机配置获取名称
-      const printer = printers.find(p => p.machine_ip === ip);
-      const name = printer?.machine_name || data.name;
-      dataPoint[name] = (dataPoint[name] as number || 0) + dailyPrints;
+      // 获取基准日和月末的数据
+      const logsResult = await db.execute({
+        sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date IN (?, ?) ORDER BY machine_ip`,
+        args: [baseDateStr, endDate],
+      });
+      
+      const dataPoint: DashboardChartPoint = { date: `${parseInt(month)}月`, count: 0 };
+      
+      // 按 IP 分组计算
+      const ipMap = new Map<string, { base: number; end: number; name: string }>();
+      for (const row of logsResult.rows) {
+        const ip = row.machine_ip as string;
+        const logDate = row.log_date as string;
+        const count = Number(row.print_count) || 0;
+        const name = row.machine_name as string;
+        
+        if (!ipMap.has(ip)) ipMap.set(ip, { base: 0, end: 0, name });
+        const entry = ipMap.get(ip)!;
+        if (logDate === baseDateStr) entry.base = count;
+        else if (logDate === endDate) entry.end = count;
+      }
+      
+      // 计算每台打印机的月度打印量
+      for (const [ip, data] of ipMap) {
+        const monthlyPrints = Math.max(0, data.end - data.base);
+        dataPoint.count += monthlyPrints;
+        
+        const printer = printers.find(p => p.machine_ip === ip);
+        const name = printer?.machine_name || data.name;
+        dataPoint[name] = (dataPoint[name] as number || 0) + monthlyPrints;
+      }
+      
+      result.push(dataPoint);
+    } else {
+      // 单日模式（原有逻辑）
+      const date = dateParam;
+      const prevDate = new Date(date);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = prevDate.toISOString().split('T')[0];
+      
+      const logsResult = await db.execute({
+        sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date IN (?, ?) ORDER BY machine_ip`,
+        args: [prevDateStr, date],
+      });
+      
+      const dataPoint: DashboardChartPoint = { date: date.slice(5), count: 0 };
+      
+      const ipMap = new Map<string, { prev: number; curr: number; name: string }>();
+      for (const row of logsResult.rows) {
+        const ip = row.machine_ip as string;
+        const logDate = row.log_date as string;
+        const count = Number(row.print_count) || 0;
+        const name = row.machine_name as string;
+        
+        if (!ipMap.has(ip)) ipMap.set(ip, { prev: 0, curr: 0, name });
+        const entry = ipMap.get(ip)!;
+        if (logDate === prevDateStr) entry.prev = count;
+        else if (logDate === date) entry.curr = count;
+      }
+      
+      for (const [ip, data] of ipMap) {
+        const dailyPrints = Math.max(0, data.curr - data.prev);
+        dataPoint.count += dailyPrints;
+        
+        const printer = printers.find(p => p.machine_ip === ip);
+        const name = printer?.machine_name || data.name;
+        dataPoint[name] = (dataPoint[name] as number || 0) + dailyPrints;
+      }
+      
+      result.push(dataPoint);
     }
-    
-    result.push(dataPoint);
   }
   
   return result;
@@ -1203,4 +1246,123 @@ export async function getCloudComparisonData(machineIP?: string): Promise<CloudC
       ...calcChange(thisMonthCount, lastMonthCount),
     },
   };
+}
+
+// ============================================
+// 代码备注管理 (SP代码/错误代码)
+// ============================================
+
+export interface CodeNote {
+  id?: number;
+  code_type: 'sp' | 'error';  // sp=SP代码, error=错误代码
+  code: string;               // 代码，如 SP5801, SC300
+  note: string;               // 备注内容
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** 获取所有备注 */
+export async function getAllCodeNotes(codeType?: 'sp' | 'error'): Promise<CodeNote[]> {
+  const db = getDatabase();
+  
+  let sql = 'SELECT * FROM code_notes';
+  const args: any[] = [];
+  
+  if (codeType) {
+    sql += ' WHERE code_type = ?';
+    args.push(codeType);
+  }
+  
+  sql += ' ORDER BY code';
+  
+  const result = await db.execute({ sql, args });
+  
+  return result.rows.map(row => ({
+    id: Number(row.id),
+    code_type: row.code_type as 'sp' | 'error',
+    code: row.code as string,
+    note: row.note as string,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  }));
+}
+
+/** 获取单个代码的备注 */
+export async function getCodeNote(codeType: 'sp' | 'error', code: string): Promise<CodeNote | null> {
+  const db = getDatabase();
+  
+  const result = await db.execute({
+    sql: 'SELECT * FROM code_notes WHERE code_type = ? AND code = ?',
+    args: [codeType, code],
+  });
+  
+  if (result.rows.length === 0) return null;
+  
+  const row = result.rows[0];
+  return {
+    id: Number(row.id),
+    code_type: row.code_type as 'sp' | 'error',
+    code: row.code as string,
+    note: row.note as string,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+/** 保存或更新备注 */
+export async function saveCodeNote(codeType: 'sp' | 'error', code: string, note: string): Promise<boolean> {
+  const db = getDatabase();
+  
+  // 如果备注为空，删除记录
+  if (!note.trim()) {
+    await db.execute({
+      sql: 'DELETE FROM code_notes WHERE code_type = ? AND code = ?',
+      args: [codeType, code],
+    });
+    return true;
+  }
+  
+  // 使用 UPSERT
+  await db.execute({
+    sql: `INSERT INTO code_notes (code_type, code, note, updated_at) 
+          VALUES (?, ?, ?, datetime('now'))
+          ON CONFLICT(code_type, code) DO UPDATE SET 
+          note = excluded.note, updated_at = datetime('now')`,
+    args: [codeType, code, note.trim()],
+  });
+  
+  return true;
+}
+
+/** 批量导入备注 (从 localStorage 迁移) */
+export async function importCodeNotes(notes: { codeType: 'sp' | 'error'; code: string; note: string }[]): Promise<number> {
+  const db = getDatabase();
+  let imported = 0;
+  
+  for (const item of notes) {
+    if (item.note.trim()) {
+      await db.execute({
+        sql: `INSERT INTO code_notes (code_type, code, note, updated_at) 
+              VALUES (?, ?, ?, datetime('now'))
+              ON CONFLICT(code_type, code) DO UPDATE SET 
+              note = excluded.note, updated_at = datetime('now')`,
+        args: [item.codeType, item.code, item.note.trim()],
+      });
+      imported++;
+    }
+  }
+  
+  return imported;
+}
+
+/** 删除备注 */
+export async function deleteCodeNote(codeType: 'sp' | 'error', code: string): Promise<boolean> {
+  const db = getDatabase();
+  
+  await db.execute({
+    sql: 'DELETE FROM code_notes WHERE code_type = ? AND code = ?',
+    args: [codeType, code],
+  });
+  
+  return true;
 }

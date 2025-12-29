@@ -160,6 +160,11 @@ const electronAPI: ElectronAPI = {
   
   // 获取云端数据对比
   getCloudComparison: (machineIP) => ipcRenderer.invoke('get-cloud-comparison', machineIP),
+  
+  // ========== 代码备注管理 ==========
+  getCodeNotes: (codeType) => ipcRenderer.invoke('get-code-notes', codeType),
+  saveCodeNote: (codeType, code, note) => ipcRenderer.invoke('save-code-note', codeType, code, note),
+  importCodeNotes: (notes) => ipcRenderer.invoke('import-code-notes', notes),
 };
 
 // 使用 contextBridge 安全地暴露 API

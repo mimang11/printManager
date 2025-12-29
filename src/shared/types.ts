@@ -286,6 +286,11 @@ export interface ElectronAPI {
   
   // ========== 云端数据对比 ==========
   getCloudComparison: (machineIP?: string) => Promise<{ success: boolean; data?: CloudComparisonData; error?: string }>;
+  
+  // ========== 代码备注管理 ==========
+  getCodeNotes: (codeType?: 'sp' | 'error') => Promise<{ success: boolean; data?: CodeNote[]; error?: string }>;
+  saveCodeNote: (codeType: 'sp' | 'error', code: string, note: string) => Promise<{ success: boolean; error?: string }>;
+  importCodeNotes: (notes: { codeType: 'sp' | 'error'; code: string; note: string }[]) => Promise<{ success: boolean; data?: number; error?: string }>;
 }
 
 /** 看板统计数据 */
@@ -342,6 +347,16 @@ export interface CloudComparisonData {
     change: number;
     change_percent: number;
   };
+}
+
+/** 代码备注 */
+export interface CodeNote {
+  id?: number;
+  code_type: 'sp' | 'error';
+  code: string;
+  note: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** 打印机统计数据 */

@@ -16,7 +16,7 @@ import { calculateDashboardStats, calculateChartData, calculatePieChartData, cal
 import { PrinterConfig, DailyRecord, ScrapeResult, OtherRevenue } from '../shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
-import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData } from './database';
+import { initDatabase, getPrintersFromDB, getPrinterLogsFromDB, getDailyPrintCounts, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData, getAllCodeNotes, saveCodeNote, importCodeNotes } from './database';
 
 // 保存主窗口的引用，防止被垃圾回收
 let mainWindow: BrowserWindow | null = null;
@@ -864,6 +864,43 @@ ipcMain.handle('get-cloud-comparison', async (_, machineIP?: string) => {
     return { success: true, data };
   } catch (error: any) {
     console.error('获取数据对比失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================
+// IPC 处理器 - 代码备注管理
+// ============================================
+
+/** 获取所有备注 */
+ipcMain.handle('get-code-notes', async (_, codeType?: 'sp' | 'error') => {
+  try {
+    const notes = await getAllCodeNotes(codeType);
+    return { success: true, data: notes };
+  } catch (error: any) {
+    console.error('获取备注失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/** 保存备注 */
+ipcMain.handle('save-code-note', async (_, codeType: 'sp' | 'error', code: string, note: string) => {
+  try {
+    await saveCodeNote(codeType, code, note);
+    return { success: true };
+  } catch (error: any) {
+    console.error('保存备注失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/** 批量导入备注 */
+ipcMain.handle('import-code-notes', async (_, notes: { codeType: 'sp' | 'error'; code: string; note: string }[]) => {
+  try {
+    const count = await importCodeNotes(notes);
+    return { success: true, data: count };
+  } catch (error: any) {
+    console.error('导入备注失败:', error);
     return { success: false, error: error.message };
   }
 });

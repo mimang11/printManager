@@ -170,14 +170,27 @@ function RevenueManager() {
     const printerRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
     const printerCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
     const totalCount = day.printers.reduce((sum, p) => sum + p.count, 0);
+    const wasteCount = day.printers.reduce((sum, p) => sum + p.wasteCount, 0);
     return {
       totalRevenue: acc.totalRevenue + printerRevenue,
       totalCost: acc.totalCost + printerCost,
       otherIncome: acc.otherIncome + day.otherIncome,
       netProfit: acc.netProfit + day.netProfit,
       totalCount: acc.totalCount + totalCount,
+      wasteCount: acc.wasteCount + wasteCount,
     };
-  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalCount: 0 });
+  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalCount: 0, wasteCount: 0 });
+
+  // 计算损耗金额（损耗数量 * 平均单价）
+  const avgPrice = monthTotals.totalCount > 0 ? monthTotals.totalRevenue / (monthTotals.totalCount + monthTotals.wasteCount - monthTotals.wasteCount) : 0;
+  // 从打印机配置获取平均售价来计算损耗金额
+  const wasteCost = filteredData.reduce((acc, day) => {
+    return acc + day.printers.reduce((sum, p) => {
+      // 损耗金额 = 损耗数量 * 该打印机的单价 (revenue / (count + wasteCount - wasteCount))
+      const unitPrice = p.count > 0 ? p.revenue / p.count : 0;
+      return sum + p.wasteCount * unitPrice;
+    }, 0);
+  }, 0);
 
   // 使用云端月租金
   const fixedCost = monthlyRent;
@@ -263,6 +276,11 @@ function RevenueManager() {
           <div className="kpi-label">本月总成本</div>
           <div className="kpi-value" style={{ color: '#ef4444' }}>¥{(monthTotals.totalCost + fixedCost).toFixed(2)}</div>
           <div className="kpi-change" style={{ color: '#6b7280' }}>耗材 ¥{monthTotals.totalCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">本月损耗</div>
+          <div className="kpi-value" style={{ color: '#f59e0b' }}>{monthTotals.wasteCount} 张</div>
+          <div className="kpi-change" style={{ color: '#ef4444' }}>损失 ¥{wasteCost.toFixed(2)}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">本月其他收入</div>

@@ -15,7 +15,7 @@ interface ErrorCode {
 
 const errorCodes: ErrorCode[] = codesData.errorCodes;
 
-// 备注存储key
+// localStorage key (用于迁移)
 const NOTES_STORAGE_KEY = 'error_code_notes';
 
 function ErrorCodeQuery() {
@@ -25,31 +25,60 @@ function ErrorCodeQuery() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // 加载备注
+  // 从云端加载备注
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(NOTES_STORAGE_KEY);
-      if (saved) {
-        setNotes(JSON.parse(saved));
+    const loadNotes = async () => {
+      try {
+        const result = await window.electronAPI.getCodeNotes('error');
+        if (result.success && result.data) {
+          const notesMap: Record<string, string> = {};
+          result.data.forEach(n => { notesMap[n.code] = n.note; });
+          setNotes(notesMap);
+          
+          // 检查是否有本地备注需要迁移
+          const localNotes = localStorage.getItem(NOTES_STORAGE_KEY);
+          if (localNotes) {
+            const localData = JSON.parse(localNotes);
+            const toImport = Object.entries(localData)
+              .filter(([code]) => !notesMap[code])
+              .map(([code, note]) => ({ codeType: 'error' as const, code, note: note as string }));
+            
+            if (toImport.length > 0) {
+              await window.electronAPI.importCodeNotes(toImport);
+              toImport.forEach(item => { notesMap[item.code] = item.note; });
+              setNotes({ ...notesMap });
+            }
+            localStorage.removeItem(NOTES_STORAGE_KEY);
+          }
+        }
+      } catch (e) {
+        console.error('加载备注失败', e);
       }
-    } catch (e) {
-      console.error('加载备注失败', e);
-    }
+    };
+    loadNotes();
   }, []);
 
-  // 保存备注
-  const saveNote = (code: string, note: string) => {
-    const newNotes = { ...notes };
-    if (note.trim()) {
-      newNotes[code] = note.trim();
-    } else {
-      delete newNotes[code];
+  // 保存备注到云端
+  const saveNote = async (code: string, note: string) => {
+    setSaving(true);
+    try {
+      await window.electronAPI.saveCodeNote('error', code, note);
+      const newNotes = { ...notes };
+      if (note.trim()) {
+        newNotes[code] = note.trim();
+      } else {
+        delete newNotes[code];
+      }
+      setNotes(newNotes);
+      setEditingNote(null);
+      setNoteText('');
+    } catch (e) {
+      console.error('保存备注失败', e);
+    } finally {
+      setSaving(false);
     }
-    setNotes(newNotes);
-    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(newNotes));
-    setEditingNote(null);
-    setNoteText('');
   };
 
   // 过滤显示的错误代码列表
@@ -204,13 +233,15 @@ function ErrorCodeQuery() {
                       className="btn btn-primary" 
                       onClick={() => saveNote(searchResult.code, noteText)}
                       style={{ padding: '4px 12px', fontSize: '13px' }}
+                      disabled={saving}
                     >
-                      保存
+                      {saving ? '保存中...' : '保存'}
                     </button>
                     <button 
                       className="btn" 
                       onClick={() => { setEditingNote(null); setNoteText(''); }}
                       style={{ padding: '4px 12px', fontSize: '13px' }}
+                      disabled={saving}
                     >
                       取消
                     </button>

@@ -99,10 +99,12 @@ function Dashboard() {
         dates.push(`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
       }
     } else {
-      // 每月第一天（用于年度统计）
+      // 年度统计：传递每月的起止日期范围 (格式: "YYYY-MM-01~YYYY-MM-DD")
       for (let m = 1; m <= 12; m++) {
         const daysInMonth = new Date(selectedYear, m, 0).getDate();
-        dates.push(`${selectedYear}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`);
+        const startDate = `${selectedYear}-${String(m).padStart(2, '0')}-01`;
+        const endDate = `${selectedYear}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+        dates.push(`${startDate}~${endDate}`);
       }
     }
     return dates;
@@ -243,32 +245,30 @@ function Dashboard() {
             </select>
           )}
           <button 
-            className="btn btn-secondary" 
+            className="btn btn-primary" 
             onClick={async () => { await syncPrinterData(); loadData(); }} 
             disabled={syncing || loading}
             title="从打印机抓取最新数据并同步到云端"
           >
             {syncing ? '同步中...' : '🔄 同步数据'}
           </button>
-          <button className="btn btn-primary" onClick={loadData} disabled={loading}>
-            {loading ? '加载中...' : '刷新'}
-          </button>
         </div>
       </div>
 
-      {/* 轻量悬浮提示 */}
-      {syncToast.show && (
-        <div style={{ 
-          position: 'fixed', top: '20px', right: '20px', 
-          padding: '12px 20px', borderRadius: '8px',
-          background: syncToast.success ? '#22c55e' : '#ef4444',
-          color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          animation: 'slideIn 0.3s ease', zIndex: 1000,
-          fontSize: '14px', fontWeight: 500,
-        }}>
-          {syncToast.message}
-        </div>
-      )}
+      {/* 轻量悬浮提示 - 使用 fixed 定位不影响布局 */}
+      <div style={{ 
+        position: 'fixed', top: '20px', right: '20px', 
+        padding: '12px 20px', borderRadius: '8px',
+        background: syncToast.success ? '#22c55e' : '#ef4444',
+        color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        zIndex: 1000, fontSize: '14px', fontWeight: 500,
+        transform: syncToast.show ? 'translateX(0)' : 'translateX(150%)',
+        opacity: syncToast.show ? 1 : 0,
+        transition: 'transform 0.3s ease, opacity 0.3s ease',
+        pointerEvents: syncToast.show ? 'auto' : 'none',
+      }}>
+        {syncToast.message}
+      </div>
 
       {/* 错误提示 */}
       {error && (
@@ -375,14 +375,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* CSS 动画 */}
-      <style>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
