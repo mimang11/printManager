@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DashboardStatsData, DashboardChartPoint, DashboardPieData } from '../../shared/types';
+import { DashboardStatsData, DashboardChartPoint, DashboardPieData, SyncResult } from '../../shared/types';
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -26,7 +26,9 @@ function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  
+  // 同步结果弹窗状态
+  const [syncToast, setSyncToast] = useState<{ show: boolean; success: boolean; message: string }>({ show: false, success: true, message: '' });
   
   // 选中的设备
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
@@ -109,24 +111,24 @@ function Dashboard() {
   // 同步打印机数据
   const syncPrinterData = async () => {
     setSyncing(true);
-    setSyncMessage(null);
     try {
       const result = await window.electronAPI.syncPrinterData();
       if (result.success && result.data) {
-        const { synced, failed, details } = result.data;
+        const { synced, failed } = result.data;
         if (failed > 0) {
-          const failedNames = details.filter(d => !d.success).map(d => d.name).join(', ');
-          setSyncMessage(`同步完成: ${synced}台成功, ${failed}台失败 (${failedNames})`);
+          setSyncToast({ show: true, success: false, message: `同步完成: ${synced}成功, ${failed}失败` });
         } else {
-          setSyncMessage(`同步完成: ${synced}台打印机数据已更新`);
+          setSyncToast({ show: true, success: true, message: `✓ ${synced}台打印机数据已同步` });
         }
       } else {
-        setSyncMessage(`同步失败: ${result.error || '未知错误'}`);
+        setSyncToast({ show: true, success: false, message: `同步失败: ${result.error || '未知错误'}` });
       }
     } catch (err: any) {
-      setSyncMessage(`同步失败: ${err.message}`);
+      setSyncToast({ show: true, success: false, message: `同步失败: ${err.message}` });
     } finally {
       setSyncing(false);
+      // 3秒后自动隐藏
+      setTimeout(() => setSyncToast(prev => ({ ...prev, show: false })), 3000);
     }
   };
 
@@ -254,26 +256,17 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* 同步消息提示 */}
-      {syncMessage && (
+      {/* 轻量悬浮提示 */}
+      {syncToast.show && (
         <div style={{ 
-          marginBottom: '16px', padding: '12px 16px', borderRadius: '12px',
-          background: syncMessage.includes('失败') 
-            ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' 
-            : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          border: syncMessage.includes('失败') ? '1px solid #fecaca' : '1px solid #bbf7d0',
-          display: 'flex', alignItems: 'center', gap: '12px'
+          position: 'fixed', top: '20px', right: '20px', 
+          padding: '12px 20px', borderRadius: '8px',
+          background: syncToast.success ? '#22c55e' : '#ef4444',
+          color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          animation: 'slideIn 0.3s ease', zIndex: 1000,
+          fontSize: '14px', fontWeight: 500,
         }}>
-          <span style={{ fontSize: '18px' }}>{syncMessage.includes('失败') ? '⚠️' : '✅'}</span>
-          <span style={{ flex: 1, fontSize: '14px', color: syncMessage.includes('失败') ? '#dc2626' : '#16a34a' }}>
-            {syncMessage}
-          </span>
-          <button 
-            onClick={() => setSyncMessage(null)} 
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#6b7280' }}
-          >
-            ✕
-          </button>
+          {syncToast.message}
         </div>
       )}
 
@@ -382,6 +375,14 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* CSS 动画 */}
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

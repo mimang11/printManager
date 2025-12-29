@@ -995,8 +995,12 @@ async function syncSinglePrinter(db: Client, config: PrinterSyncConfig): Promise
     return { success: false, error: '无法获取打印计数' };
   }
   
-  const today = new Date().toISOString().split('T')[0];
-  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  // 使用中国时区 (UTC+8)
+  const now = new Date();
+  const chinaOffset = 8 * 60 * 60 * 1000; // UTC+8
+  const chinaTime = new Date(now.getTime() + chinaOffset);
+  const today = chinaTime.toISOString().split('T')[0];
+  const nowStr = chinaTime.toISOString().replace('T', ' ').substring(0, 19);
   
   try {
     await db.execute({
@@ -1004,7 +1008,7 @@ async function syncSinglePrinter(db: Client, config: PrinterSyncConfig): Promise
             VALUES (?, ?, ?, ?, ?) 
             ON CONFLICT(machine_ip, log_date) DO UPDATE SET 
             print_count = excluded.print_count, created_at = excluded.created_at`,
-      args: [config.name, config.ip, printCount, today, now],
+      args: [config.name, config.ip, printCount, today, nowStr],
     });
     
     return { success: true, count: printCount };
