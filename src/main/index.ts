@@ -721,6 +721,7 @@ ipcMain.handle('auto-add-printers-from-logs', async () => {
         printer_type: 'mono', // 默认黑白机
         cost_per_page: 0.05,
         price_per_page: 0.5,
+        scrape_url: null,
         status: 'online', // 因为在 logs 中存在，所以是在线
       });
       addedCount++;

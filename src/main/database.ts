@@ -87,6 +87,7 @@ export interface DBPrinter {
   printer_type: 'mono' | 'color';
   cost_per_page: number;
   price_per_page: number;
+  scrape_url: string | null;
   status: 'online' | 'offline' | 'error';
   created_at: string;
   updated_at: string;
@@ -128,6 +129,7 @@ export async function getAllPrinters(): Promise<DBPrinter[]> {
     printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
     cost_per_page: row.cost_per_page as number,
     price_per_page: row.price_per_page as number,
+    scrape_url: (row.scrape_url as string) || null,
     status: (row.status as 'online' | 'offline' | 'error') || 'offline',
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -152,6 +154,7 @@ export async function getPrinterByName(machineName: string): Promise<DBPrinter |
     printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
     cost_per_page: row.cost_per_page as number,
     price_per_page: row.price_per_page as number,
+    scrape_url: (row.scrape_url as string) || null,
     status: (row.status as 'online' | 'offline' | 'error') || 'offline',
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -162,14 +165,15 @@ export async function getPrinterByName(machineName: string): Promise<DBPrinter |
 export async function addPrinter(printer: Omit<DBPrinter, 'id' | 'created_at' | 'updated_at'>): Promise<DBPrinter> {
   const db = getDatabase();
   const result = await db.execute({
-    sql: `INSERT INTO printers (machine_name, machine_ip, printer_type, cost_per_page, price_per_page, status)
-          VALUES (?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO printers (machine_name, machine_ip, printer_type, cost_per_page, price_per_page, scrape_url, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
     args: [
       printer.machine_name,
       printer.machine_ip,
       printer.printer_type,
       printer.cost_per_page,
       printer.price_per_page,
+      printer.scrape_url || null,
       printer.status || 'offline',
     ],
   });
@@ -189,6 +193,7 @@ export async function updatePrinter(id: number, printer: Partial<Omit<DBPrinter,
   if (printer.printer_type !== undefined) { fields.push('printer_type = ?'); args.push(printer.printer_type); }
   if (printer.cost_per_page !== undefined) { fields.push('cost_per_page = ?'); args.push(printer.cost_per_page); }
   if (printer.price_per_page !== undefined) { fields.push('price_per_page = ?'); args.push(printer.price_per_page); }
+  if (printer.scrape_url !== undefined) { fields.push('scrape_url = ?'); args.push(printer.scrape_url); }
   if (printer.status !== undefined) { fields.push('status = ?'); args.push(printer.status); }
   
   if (fields.length === 0) return null;
@@ -212,6 +217,7 @@ export async function updatePrinter(id: number, printer: Partial<Omit<DBPrinter,
     printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
     cost_per_page: row.cost_per_page as number,
     price_per_page: row.price_per_page as number,
+    scrape_url: (row.scrape_url as string) || null,
     status: (row.status as 'online' | 'offline' | 'error') || 'offline',
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -309,6 +315,7 @@ export async function getPrinterByIP(machineIP: string): Promise<DBPrinter | nul
     printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
     cost_per_page: row.cost_per_page as number,
     price_per_page: row.price_per_page as number,
+    scrape_url: (row.scrape_url as string) || null,
     status: (row.status as 'online' | 'offline' | 'error') || 'offline',
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -348,6 +355,7 @@ export async function getPrinterStats(printerId: number): Promise<PrinterStats |
     printer_type: (row.printer_type as 'mono' | 'color') || 'mono',
     cost_per_page: row.cost_per_page as number,
     price_per_page: row.price_per_page as number,
+    scrape_url: (row.scrape_url as string) || null,
     status: (row.status as 'online' | 'offline' | 'error') || 'offline',
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -956,11 +964,10 @@ async function fetchPrintCount(url: string): Promise<number | null> {
     });
     const html = await response.text();
     
-    // 策略A: 匹配彩机 JS 变量格式 'Total Printed Impressions',279307
-    // 注意：可能是单引号或双引号
-    const jsMatch = html.match(/Total Printed Impressions['"]\s*,\s*(\d+)/i);
-    if (jsMatch) {
-      return parseInt(jsMatch[1], 10);
+    // 策略A: 匹配彩机 JS 数组格式 var info=['Total Printed Impressions',279333,...]
+    const jsArrayMatch = html.match(/['"]Total Printed Impressions['"]\s*,\s*(\d+)/i);
+    if (jsArrayMatch) {
+      return parseInt(jsArrayMatch[1], 10);
     }
     
     // 策略B: 匹配普通机器 HTML 标签格式 >4677634<
@@ -1010,14 +1017,17 @@ async function syncSinglePrinter(db: Client, config: PrinterSyncConfig): Promise
 export async function syncAllPrinterData(): Promise<SyncResult> {
   const db = getDatabase();
   
-  // 从数据库获取打印机配置，构建抓取URL
+  // 从数据库获取打印机配置
   const printers = await getAllPrinters();
   
   const syncConfigs: PrinterSyncConfig[] = printers.map(p => {
-    // 根据打印机类型确定抓取URL
-    const url = p.printer_type === 'color' 
-      ? `http://${p.machine_ip}/prcnt.htm`
-      : `http://${p.machine_ip}/web/guest/cn/websys/status/getUnificationCounter.cgi`;
+    // 优先使用数据库中配置的 scrape_url，否则根据打印机类型生成默认URL
+    let url = p.scrape_url;
+    if (!url) {
+      url = p.printer_type === 'color' 
+        ? `http://${p.machine_ip}/prcnt.htm`
+        : `http://${p.machine_ip}/web/guest/cn/websys/status/getUnificationCounter.cgi`;
+    }
     
     return {
       name: p.machine_name,

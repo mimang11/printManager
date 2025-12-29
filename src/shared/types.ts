@@ -188,6 +188,7 @@ export interface CloudPrinterConfig {
   printer_type: 'mono' | 'color';
   cost_per_page: number;
   price_per_page: number;
+  scrape_url: string | null;
   status: 'online' | 'offline' | 'error';
   created_at: string;
   updated_at: string;

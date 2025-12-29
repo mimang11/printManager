@@ -16,6 +16,7 @@ const emptyForm = {
   printer_type: 'mono' as 'mono' | 'color',
   cost_per_page: 0.05,
   price_per_page: 0.5,
+  scrape_url: '',
 };
 
 function DeviceManager() {
@@ -99,6 +100,7 @@ function DeviceManager() {
       printer_type: printer.printer_type,
       cost_per_page: printer.cost_per_page,
       price_per_page: printer.price_per_page,
+      scrape_url: printer.scrape_url || '',
     });
     setIpCheckResult(null);
     setShowModal(true);
@@ -140,6 +142,7 @@ function DeviceManager() {
           printer_type: formData.printer_type,
           cost_per_page: formData.cost_per_page,
           price_per_page: formData.price_per_page,
+          scrape_url: formData.scrape_url || null,
         });
         if (!result.success) {
           alert('更新失败: ' + result.error);
@@ -153,6 +156,7 @@ function DeviceManager() {
           printer_type: formData.printer_type,
           cost_per_page: formData.cost_per_page,
           price_per_page: formData.price_per_page,
+          scrape_url: formData.scrape_url || null,
           status: 'offline', // 后端会根据 IP 检查结果覆盖
         });
         if (!result.success) {
@@ -379,6 +383,20 @@ function DeviceManager() {
                     onChange={(e) => setFormData({ ...formData, price_per_page: parseFloat(e.target.value) || 0 })}
                   />
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">数据抓取URL</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={formData.printer_type === 'color' 
+                    ? `默认: http://${formData.machine_ip || 'IP'}/prcnt.htm`
+                    : `默认: http://${formData.machine_ip || 'IP'}/web/guest/cn/websys/status/getUnificationCounter.cgi`}
+                  value={formData.scrape_url}
+                  onChange={(e) => setFormData({ ...formData, scrape_url: e.target.value })}
+                  autoComplete="off"
+                />
+                <p className="form-hint">用于同步打印计数的网页地址，留空则使用默认URL</p>
               </div>
             </div>
             <div className="modal-footer">
