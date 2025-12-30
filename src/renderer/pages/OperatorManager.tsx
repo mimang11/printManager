@@ -7,18 +7,26 @@ import { Operator, DamageReason } from '../../shared/types';
 function OperatorManager() {
   // 操作人状态
   const [operators, setOperators] = useState<Operator[]>([]);
-  const [newOperatorName, setNewOperatorName] = useState('');
-  const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
   const [operatorLoading, setOperatorLoading] = useState(true);
 
   // 损耗理由状态
   const [damageReasons, setDamageReasons] = useState<DamageReason[]>([]);
-  const [newReasonText, setNewReasonText] = useState('');
-  const [editingReason, setEditingReason] = useState<DamageReason | null>(null);
   const [reasonLoading, setReasonLoading] = useState(true);
 
-  // 删除确认
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'operator' | 'reason'; id: number } | null>(null);
+  // 操作人弹窗
+  const [showOperatorModal, setShowOperatorModal] = useState(false);
+  const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
+  const [operatorName, setOperatorName] = useState('');
+  const [operatorSaving, setOperatorSaving] = useState(false);
+
+  // 损耗理由弹窗
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [editingReason, setEditingReason] = useState<DamageReason | null>(null);
+  const [reasonText, setReasonText] = useState('');
+  const [reasonSaving, setReasonSaving] = useState(false);
+
+  // 删除确认弹窗
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'operator' | 'reason'; id: number; name: string } | null>(null);
 
   // 加载操作人
   const loadOperators = async () => {
@@ -55,104 +63,122 @@ function OperatorManager() {
     loadDamageReasons();
   }, []);
 
-  // 添加操作人
-  const handleAddOperator = async () => {
-    if (!newOperatorName.trim()) {
+  // 打开添加操作人弹窗
+  const handleAddOperator = () => {
+    setEditingOperator(null);
+    setOperatorName('');
+    setShowOperatorModal(true);
+  };
+
+  // 打开编辑操作人弹窗
+  const handleEditOperator = (op: Operator) => {
+    setEditingOperator(op);
+    setOperatorName(op.name);
+    setShowOperatorModal(true);
+  };
+
+  // 保存操作人
+  const handleSaveOperator = async () => {
+    if (!operatorName.trim()) {
       alert('请输入操作人姓名');
       return;
     }
+    setOperatorSaving(true);
     try {
-      const result = await window.electronAPI.addOperator(newOperatorName.trim());
-      if (result.success && result.data) {
-        setOperators([...operators, result.data]);
-        setNewOperatorName('');
+      if (editingOperator) {
+        const result = await window.electronAPI.updateOperator(editingOperator.id, operatorName.trim());
+        if (result.success) {
+          loadOperators();
+          setShowOperatorModal(false);
+        } else {
+          alert('更新失败: ' + result.error);
+        }
       } else {
-        alert('添加失败: ' + result.error);
+        const result = await window.electronAPI.addOperator(operatorName.trim());
+        if (result.success) {
+          loadOperators();
+          setShowOperatorModal(false);
+        } else {
+          alert('添加失败: ' + result.error);
+        }
       }
     } catch (err: any) {
-      alert('添加失败: ' + err.message);
+      alert('操作失败: ' + err.message);
+    } finally {
+      setOperatorSaving(false);
     }
   };
 
-  // 更新操作人
-  const handleUpdateOperator = async () => {
-    if (!editingOperator || !editingOperator.name.trim()) return;
-    try {
-      const result = await window.electronAPI.updateOperator(editingOperator.id, editingOperator.name.trim());
-      if (result.success && result.data) {
-        setOperators(operators.map(o => o.id === editingOperator.id ? result.data! : o));
-        setEditingOperator(null);
-      } else {
-        alert('更新失败: ' + result.error);
-      }
-    } catch (err: any) {
-      alert('更新失败: ' + err.message);
-    }
+  // 打开添加损耗理由弹窗
+  const handleAddReason = () => {
+    setEditingReason(null);
+    setReasonText('');
+    setShowReasonModal(true);
   };
 
-  // 删除操作人
-  const handleDeleteOperator = async (id: number) => {
-    try {
-      const result = await window.electronAPI.deleteOperator(id);
-      if (result.success) {
-        setOperators(operators.filter(o => o.id !== id));
-      } else {
-        alert('删除失败: ' + result.error);
-      }
-    } catch (err: any) {
-      alert('删除失败: ' + err.message);
-    }
-    setDeleteConfirm(null);
+  // 打开编辑损耗理由弹窗
+  const handleEditReason = (reason: DamageReason) => {
+    setEditingReason(reason);
+    setReasonText(reason.reason);
+    setShowReasonModal(true);
   };
 
-  // 添加损耗理由
-  const handleAddReason = async () => {
-    if (!newReasonText.trim()) {
+  // 保存损耗理由
+  const handleSaveReason = async () => {
+    if (!reasonText.trim()) {
       alert('请输入损耗理由');
       return;
     }
+    setReasonSaving(true);
     try {
-      const result = await window.electronAPI.addDamageReason(newReasonText.trim());
-      if (result.success && result.data) {
-        setDamageReasons([...damageReasons, result.data]);
-        setNewReasonText('');
+      if (editingReason) {
+        const result = await window.electronAPI.updateDamageReason(editingReason.id, reasonText.trim());
+        if (result.success) {
+          loadDamageReasons();
+          setShowReasonModal(false);
+        } else {
+          alert('更新失败: ' + result.error);
+        }
       } else {
-        alert('添加失败: ' + result.error);
+        const result = await window.electronAPI.addDamageReason(reasonText.trim());
+        if (result.success) {
+          loadDamageReasons();
+          setShowReasonModal(false);
+        } else {
+          alert('添加失败: ' + result.error);
+        }
       }
     } catch (err: any) {
-      alert('添加失败: ' + err.message);
+      alert('操作失败: ' + err.message);
+    } finally {
+      setReasonSaving(false);
     }
   };
 
-  // 更新损耗理由
-  const handleUpdateReason = async () => {
-    if (!editingReason || !editingReason.reason.trim()) return;
+  // 确认删除
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      const result = await window.electronAPI.updateDamageReason(editingReason.id, editingReason.reason.trim());
-      if (result.success && result.data) {
-        setDamageReasons(damageReasons.map(r => r.id === editingReason.id ? result.data! : r));
-        setEditingReason(null);
+      if (deleteConfirm.type === 'operator') {
+        const result = await window.electronAPI.deleteOperator(deleteConfirm.id);
+        if (result.success) {
+          loadOperators();
+        } else {
+          alert('删除失败: ' + result.error);
+        }
       } else {
-        alert('更新失败: ' + result.error);
-      }
-    } catch (err: any) {
-      alert('更新失败: ' + err.message);
-    }
-  };
-
-  // 删除损耗理由
-  const handleDeleteReason = async (id: number) => {
-    try {
-      const result = await window.electronAPI.deleteDamageReason(id);
-      if (result.success) {
-        setDamageReasons(damageReasons.filter(r => r.id !== id));
-      } else {
-        alert('删除失败: ' + result.error);
+        const result = await window.electronAPI.deleteDamageReason(deleteConfirm.id);
+        if (result.success) {
+          loadDamageReasons();
+        } else {
+          alert('删除失败: ' + result.error);
+        }
       }
     } catch (err: any) {
       alert('删除失败: ' + err.message);
+    } finally {
+      setDeleteConfirm(null);
     }
-    setDeleteConfirm(null);
   };
 
   const cardStyle: React.CSSProperties = {
@@ -176,65 +202,29 @@ function OperatorManager() {
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>👤 操作人管理</h2>
-            <span style={{ fontSize: '13px', color: '#6b7280' }}>共 {operators.length} 人</span>
+            <button className="btn btn-primary" onClick={handleAddOperator}>+ 添加</button>
           </div>
 
-          {/* 添加操作人 */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="输入操作人姓名"
-              value={newOperatorName}
-              onChange={(e) => setNewOperatorName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddOperator()}
-              style={{ flex: 1 }}
-            />
-            <button className="btn btn-primary" onClick={handleAddOperator}>添加</button>
-          </div>
-
-          {/* 操作人列表 */}
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
             {operatorLoading ? (
               <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>加载中...</div>
             ) : operators.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af' }}>暂无操作人</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>暂无操作人，点击上方按钮添加</div>
             ) : (
               operators.map(op => (
                 <div key={op.id} style={listItemStyle}>
-                  {editingOperator?.id === op.id ? (
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editingOperator.name}
-                      onChange={(e) => setEditingOperator({ ...editingOperator, name: e.target.value })}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateOperator()}
-                      style={{ flex: 1, marginRight: '8px' }}
-                      autoFocus
-                    />
-                  ) : (
-                    <span style={{ fontWeight: 500 }}>{op.name}</span>
-                  )}
+                  <span style={{ fontWeight: 500 }}>{op.name}</span>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    {editingOperator?.id === op.id ? (
-                      <>
-                        <button className="btn btn-sm btn-primary" onClick={handleUpdateOperator}>保存</button>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingOperator(null)}>取消</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingOperator(op)}>编辑</button>
-                        <button
-                          className="btn btn-sm"
-                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
-                          onClick={() => setDeleteConfirm({ type: 'operator', id: op.id })}
-                        >删除</button>
-                      </>
-                    )}
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleEditOperator(op)}>编辑</button>
+                    <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                      onClick={() => setDeleteConfirm({ type: 'operator', id: op.id, name: op.name })}>删除</button>
                   </div>
                 </div>
               ))
             )}
+          </div>
+          <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280', textAlign: 'right' }}>
+            共 {operators.length} 人
           </div>
         </div>
 
@@ -242,68 +232,84 @@ function OperatorManager() {
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>📋 损耗理由管理</h2>
-            <span style={{ fontSize: '13px', color: '#6b7280' }}>共 {damageReasons.length} 条</span>
+            <button className="btn btn-primary" onClick={handleAddReason}>+ 添加</button>
           </div>
 
-          {/* 添加损耗理由 */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="输入损耗理由（如：卡纸、错打）"
-              value={newReasonText}
-              onChange={(e) => setNewReasonText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
-              style={{ flex: 1 }}
-            />
-            <button className="btn btn-primary" onClick={handleAddReason}>添加</button>
-          </div>
-
-          {/* 损耗理由列表 */}
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
             {reasonLoading ? (
               <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>加载中...</div>
             ) : damageReasons.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af' }}>暂无损耗理由</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>暂无损耗理由，点击上方按钮添加</div>
             ) : (
               damageReasons.map(reason => (
                 <div key={reason.id} style={listItemStyle}>
-                  {editingReason?.id === reason.id ? (
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editingReason.reason}
-                      onChange={(e) => setEditingReason({ ...editingReason, reason: e.target.value })}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateReason()}
-                      style={{ flex: 1, marginRight: '8px' }}
-                      autoFocus
-                    />
-                  ) : (
-                    <span style={{ fontWeight: 500 }}>{reason.reason}</span>
-                  )}
+                  <span style={{ fontWeight: 500 }}>{reason.reason}</span>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    {editingReason?.id === reason.id ? (
-                      <>
-                        <button className="btn btn-sm btn-primary" onClick={handleUpdateReason}>保存</button>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingReason(null)}>取消</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingReason(reason)}>编辑</button>
-                        <button
-                          className="btn btn-sm"
-                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
-                          onClick={() => setDeleteConfirm({ type: 'reason', id: reason.id })}
-                        >删除</button>
-                      </>
-                    )}
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleEditReason(reason)}>编辑</button>
+                    <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                      onClick={() => setDeleteConfirm({ type: 'reason', id: reason.id, name: reason.reason })}>删除</button>
                   </div>
                 </div>
               ))
             )}
           </div>
+          <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280', textAlign: 'right' }}>
+            共 {damageReasons.length} 条
+          </div>
         </div>
       </div>
+
+      {/* 操作人弹窗 */}
+      {showOperatorModal && (
+        <div className="modal-overlay" onClick={() => setShowOperatorModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">{editingOperator ? '编辑操作人' : '添加操作人'}</h2>
+              <button className="modal-close" onClick={() => setShowOperatorModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">操作人姓名 *</label>
+                <input type="text" className="form-input" placeholder="请输入姓名" value={operatorName}
+                  onChange={(e) => setOperatorName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveOperator()} autoFocus />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowOperatorModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSaveOperator} disabled={operatorSaving}>
+                {operatorSaving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 损耗理由弹窗 */}
+      {showReasonModal && (
+        <div className="modal-overlay" onClick={() => setShowReasonModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">{editingReason ? '编辑损耗理由' : '添加损耗理由'}</h2>
+              <button className="modal-close" onClick={() => setShowReasonModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">损耗理由 *</label>
+                <input type="text" className="form-input" placeholder="如：卡纸、错打、测试等" value={reasonText}
+                  onChange={(e) => setReasonText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveReason()} autoFocus />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowReasonModal(false)}>取消</button>
+              <button className="btn btn-primary" onClick={handleSaveReason} disabled={reasonSaving}>
+                {reasonSaving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 删除确认弹窗 */}
       {deleteConfirm && (
@@ -315,22 +321,12 @@ function OperatorManager() {
             </div>
             <div className="modal-body">
               <p style={{ textAlign: 'center', margin: '16px 0' }}>
-                确定要删除此{deleteConfirm.type === 'operator' ? '操作人' : '损耗理由'}吗？
+                确定要删除{deleteConfirm.type === 'operator' ? '操作人' : '损耗理由'} <strong>"{deleteConfirm.name}"</strong> 吗？
               </p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>取消</button>
-              <button
-                className="btn"
-                style={{ background: '#dc2626', color: 'white' }}
-                onClick={() => {
-                  if (deleteConfirm.type === 'operator') {
-                    handleDeleteOperator(deleteConfirm.id);
-                  } else {
-                    handleDeleteReason(deleteConfirm.id);
-                  }
-                }}
-              >删除</button>
+              <button className="btn" style={{ background: '#dc2626', color: 'white' }} onClick={confirmDelete}>删除</button>
             </div>
           </div>
         </div>
