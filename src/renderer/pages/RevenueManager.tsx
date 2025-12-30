@@ -51,6 +51,15 @@ function RevenueManager() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [damageReasons, setDamageReasons] = useState<DamageReason[]>([]);
 
+  // 损耗统计弹窗
+  const [showWasteStatsModal, setShowWasteStatsModal] = useState(false);
+  const [wasteStatsLoading, setWasteStatsLoading] = useState(false);
+  const [wasteStatsByOperator, setWasteStatsByOperator] = useState<{ operator: string; count: number; records: WasteRecordDetail[] }[]>([]);
+  const [wasteStatsByDay, setWasteStatsByDay] = useState<{ date: string; count: number; records: WasteRecordDetail[] }[]>([]);
+  const [wasteStatsTab, setWasteStatsTab] = useState<'operator' | 'daily'>('operator');
+  const [expandedWasteOperator, setExpandedWasteOperator] = useState<string | null>(null);
+  const [expandedWasteDay, setExpandedWasteDay] = useState<string | null>(null);
+
   // 加载月租金
   const loadRent = async () => {
     try {
@@ -184,6 +193,68 @@ function RevenueManager() {
       alert('删除失败: ' + err.message);
     } finally {
       setDeleteOtherConfirmId(null);
+    }
+  };
+
+  // 打开损耗统计弹窗
+  const openWasteStatsModal = async () => {
+    setShowWasteStatsModal(true);
+    setWasteStatsLoading(true);
+    setExpandedWasteOperator(null);
+    setExpandedWasteDay(null);
+    
+    try {
+      // 收集当月所有损耗记录
+      const allWasteRecords: WasteRecordDetail[] = [];
+      
+      // 遍历每天的数据获取损耗记录
+      for (const day of revenueData) {
+        for (const printer of day.printers) {
+          if (printer.wasteCount > 0) {
+            const result = await window.electronAPI.getWasteRecords(printer.printerId, day.date);
+            if (result.success && result.data) {
+              allWasteRecords.push(...result.data);
+            }
+          }
+        }
+      }
+      
+      // 按操作人统计
+      const operatorMap = new Map<string, { count: number; records: WasteRecordDetail[] }>();
+      for (const record of allWasteRecords) {
+        const op = record.operator || '未知';
+        if (!operatorMap.has(op)) {
+          operatorMap.set(op, { count: 0, records: [] });
+        }
+        const entry = operatorMap.get(op)!;
+        entry.count += record.waste_count;
+        entry.records.push(record);
+      }
+      const byOperator = Array.from(operatorMap.entries())
+        .map(([operator, data]) => ({ operator, ...data }))
+        .sort((a, b) => b.count - a.count);
+      setWasteStatsByOperator(byOperator);
+      
+      // 按日期统计
+      const dayMap = new Map<string, { count: number; records: WasteRecordDetail[] }>();
+      for (const record of allWasteRecords) {
+        const date = record.waste_date;
+        if (!dayMap.has(date)) {
+          dayMap.set(date, { count: 0, records: [] });
+        }
+        const entry = dayMap.get(date)!;
+        entry.count += record.waste_count;
+        entry.records.push(record);
+      }
+      const byDay = Array.from(dayMap.entries())
+        .map(([date, data]) => ({ date, ...data }))
+        .sort((a, b) => b.date.localeCompare(a.date));
+      setWasteStatsByDay(byDay);
+      
+    } catch (err) {
+      console.error('加载损耗统计失败:', err);
+    } finally {
+      setWasteStatsLoading(false);
     }
   };
 
@@ -441,8 +512,8 @@ function RevenueManager() {
             耗材 ¥{monthTotals.totalCost.toFixed(0)} + 损耗 ¥{wasteCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}
           </div>
         </div>
-        <div className="kpi-card">
-          <div className="kpi-label">本月损耗</div>
+        <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={openWasteStatsModal}>
+          <div className="kpi-label">本月损耗 <span style={{ fontSize: '11px', color: '#9ca3af' }}>点击查看详情</span></div>
           <div className="kpi-value" style={{ color: '#f59e0b' }}>{monthTotals.wasteCount} 张</div>
           <div className="kpi-change" style={{ color: '#ef4444' }}>损失 ¥{wasteCost.toFixed(2)}</div>
         </div>
@@ -911,6 +982,114 @@ function RevenueManager() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 损耗统计弹窗 */}
+      {showWasteStatsModal && (
+        <div className="modal-overlay" onClick={() => setShowWasteStatsModal(false)}>
+          <div className="modal" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">📊 {year}年{month}月 损耗统计</h2>
+              <button className="modal-close" onClick={() => setShowWasteStatsModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {/* 汇总信息 */}
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#fef3c7', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#92400e' }}>本月总损耗</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#d97706' }}>{monthTotals.wasteCount} 张</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: '#92400e' }}>损失金额</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#ef4444' }}>¥{wasteCost.toFixed(2)}</div>
+                </div>
+              </div>
+              
+              {/* Tab 切换 */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <button className={`btn ${wasteStatsTab === 'operator' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setWasteStatsTab('operator')}>按操作人</button>
+                <button className={`btn ${wasteStatsTab === 'daily' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setWasteStatsTab('daily')}>按日期</button>
+              </div>
+              
+              {wasteStatsLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>加载中...</div>
+              ) : wasteStatsTab === 'operator' ? (
+                /* 按操作人统计 */
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {wasteStatsByOperator.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>暂无损耗记录</div>
+                  ) : wasteStatsByOperator.map(item => (
+                    <div key={item.operator} style={{ marginBottom: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', cursor: 'pointer' }}
+                        onClick={() => setExpandedWasteOperator(expandedWasteOperator === item.operator ? null : item.operator)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{expandedWasteOperator === item.operator ? '▼' : '▶'}</span>
+                          <span style={{ fontWeight: 600 }}>👤 {item.operator}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span style={{ fontWeight: 600, color: '#f59e0b' }}>{item.count} 张</span>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{item.records.length} 条记录</span>
+                        </div>
+                      </div>
+                      {expandedWasteOperator === item.operator && (
+                        <div style={{ padding: '12px 16px', background: 'white' }}>
+                          {item.records.map(r => (
+                            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: '13px' }}>
+                              <div>
+                                <span style={{ color: '#6b7280' }}>{r.waste_date}</span>
+                                {r.note && <span style={{ marginLeft: '8px', color: '#9ca3af' }}>({r.note})</span>}
+                              </div>
+                              <span style={{ fontWeight: 500, color: '#ef4444' }}>{r.waste_count} 张</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* 按日期统计 */
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {wasteStatsByDay.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>暂无损耗记录</div>
+                  ) : wasteStatsByDay.map(item => (
+                    <div key={item.date} style={{ marginBottom: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', cursor: 'pointer' }}
+                        onClick={() => setExpandedWasteDay(expandedWasteDay === item.date ? null : item.date)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{expandedWasteDay === item.date ? '▼' : '▶'}</span>
+                          <span style={{ fontWeight: 600 }}>📅 {item.date}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span style={{ fontWeight: 600, color: '#f59e0b' }}>{item.count} 张</span>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{item.records.length} 条记录</span>
+                        </div>
+                      </div>
+                      {expandedWasteDay === item.date && (
+                        <div style={{ padding: '12px 16px', background: 'white' }}>
+                          {item.records.map(r => (
+                            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: '13px' }}>
+                              <div>
+                                <span style={{ fontWeight: 500 }}>{r.operator || '未知'}</span>
+                                {r.note && <span style={{ marginLeft: '8px', color: '#9ca3af' }}>({r.note})</span>}
+                              </div>
+                              <span style={{ fontWeight: 500, color: '#ef4444' }}>{r.waste_count} 张</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowWasteStatsModal(false)}>关闭</button>
+            </div>
           </div>
         </div>
       )}
