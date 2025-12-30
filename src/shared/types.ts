@@ -32,6 +32,32 @@ export interface WasteRecordDetail {
   created_at: string;
 }
 
+/** 操作人 */
+export interface Operator {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+/** 损耗理由 */
+export interface DamageReason {
+  id: number;
+  reason: string;
+  created_at: string;
+}
+
+/** 其他收入明细 */
+export interface OtherRevenueDetail {
+  id: number;
+  revenue_date: string;
+  amount: number;
+  cost: number;
+  description: string;
+  category: string;
+  operator: string;
+  created_at: string;
+}
+
 /** IPC 通信的 API 接口定义 */
 export interface ElectronAPI {
   // 打印机详情
@@ -71,6 +97,23 @@ export interface ElectronAPI {
   getCodeNotes: (codeType?: 'sp' | 'error') => Promise<{ success: boolean; data?: CodeNote[]; error?: string }>;
   saveCodeNote: (codeType: 'sp' | 'error', code: string, note: string) => Promise<{ success: boolean; error?: string }>;
   importCodeNotes: (notes: { codeType: 'sp' | 'error'; code: string; note: string }[]) => Promise<{ success: boolean; data?: number; error?: string }>;
+  
+  // 操作人管理
+  getOperators: () => Promise<{ success: boolean; data?: Operator[]; error?: string }>;
+  addOperator: (name: string) => Promise<{ success: boolean; data?: Operator; error?: string }>;
+  updateOperator: (id: number, name: string) => Promise<{ success: boolean; data?: Operator; error?: string }>;
+  deleteOperator: (id: number) => Promise<{ success: boolean; error?: string }>;
+  
+  // 损耗理由管理
+  getDamageReasons: () => Promise<{ success: boolean; data?: DamageReason[]; error?: string }>;
+  addDamageReason: (reason: string) => Promise<{ success: boolean; data?: DamageReason; error?: string }>;
+  updateDamageReason: (id: number, reason: string) => Promise<{ success: boolean; data?: DamageReason; error?: string }>;
+  deleteDamageReason: (id: number) => Promise<{ success: boolean; error?: string }>;
+  
+  // 其他收入明细管理
+  getOtherRevenueRecords: (date: string) => Promise<{ success: boolean; data?: OtherRevenueDetail[]; error?: string }>;
+  addOtherRevenueRecord: (data: { date: string; amount: number; cost: number; description: string; category: string; operator: string }) => Promise<{ success: boolean; data?: OtherRevenueDetail; error?: string }>;
+  deleteOtherRevenueRecord: (id: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 /** 看板统计数据 */

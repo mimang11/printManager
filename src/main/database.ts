@@ -1467,3 +1467,166 @@ export async function deleteCodeNote(codeType: 'sp' | 'error', code: string): Pr
   
   return true;
 }
+
+// ============================================
+// 操作人管理
+// ============================================
+
+export interface Operator {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+/** 获取所有操作人 */
+export async function getAllOperators(): Promise<Operator[]> {
+  const db = getDatabase();
+  const result = await db.execute('SELECT * FROM operators ORDER BY name');
+  return result.rows.map(row => ({
+    id: row.id as number,
+    name: row.name as string,
+    created_at: row.created_at as string,
+  }));
+}
+
+/** 添加操作人 */
+export async function addOperator(name: string): Promise<Operator> {
+  const db = getDatabase();
+  await db.execute({ sql: 'INSERT INTO operators (name) VALUES (?)', args: [name.trim()] });
+  const result = await db.execute({ sql: 'SELECT * FROM operators WHERE name = ?', args: [name.trim()] });
+  const row = result.rows[0];
+  return { id: row.id as number, name: row.name as string, created_at: row.created_at as string };
+}
+
+/** 更新操作人 */
+export async function updateOperator(id: number, name: string): Promise<Operator | null> {
+  const db = getDatabase();
+  await db.execute({ sql: 'UPDATE operators SET name = ? WHERE id = ?', args: [name.trim(), id] });
+  const result = await db.execute({ sql: 'SELECT * FROM operators WHERE id = ?', args: [id] });
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return { id: row.id as number, name: row.name as string, created_at: row.created_at as string };
+}
+
+/** 删除操作人 */
+export async function deleteOperator(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db.execute({ sql: 'DELETE FROM operators WHERE id = ?', args: [id] });
+  return result.rowsAffected > 0;
+}
+
+// ============================================
+// 损耗理由管理
+// ============================================
+
+export interface DamageReason {
+  id: number;
+  reason: string;
+  created_at: string;
+}
+
+/** 获取所有损耗理由 */
+export async function getAllDamageReasons(): Promise<DamageReason[]> {
+  const db = getDatabase();
+  const result = await db.execute('SELECT * FROM damage_reasons ORDER BY reason');
+  return result.rows.map(row => ({
+    id: row.id as number,
+    reason: row.reason as string,
+    created_at: row.created_at as string,
+  }));
+}
+
+/** 添加损耗理由 */
+export async function addDamageReason(reason: string): Promise<DamageReason> {
+  const db = getDatabase();
+  await db.execute({ sql: 'INSERT INTO damage_reasons (reason) VALUES (?)', args: [reason.trim()] });
+  const result = await db.execute({ sql: 'SELECT * FROM damage_reasons WHERE reason = ?', args: [reason.trim()] });
+  const row = result.rows[0];
+  return { id: row.id as number, reason: row.reason as string, created_at: row.created_at as string };
+}
+
+/** 更新损耗理由 */
+export async function updateDamageReason(id: number, reason: string): Promise<DamageReason | null> {
+  const db = getDatabase();
+  await db.execute({ sql: 'UPDATE damage_reasons SET reason = ? WHERE id = ?', args: [reason.trim(), id] });
+  const result = await db.execute({ sql: 'SELECT * FROM damage_reasons WHERE id = ?', args: [id] });
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return { id: row.id as number, reason: row.reason as string, created_at: row.created_at as string };
+}
+
+/** 删除损耗理由 */
+export async function deleteDamageReason(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db.execute({ sql: 'DELETE FROM damage_reasons WHERE id = ?', args: [id] });
+  return result.rowsAffected > 0;
+}
+
+// ============================================
+// 其他收入明细管理 (多记录模式)
+// ============================================
+
+export interface OtherRevenueDetail {
+  id: number;
+  revenue_date: string;
+  amount: number;
+  cost: number;
+  description: string;
+  category: string;
+  operator: string;
+  created_at: string;
+}
+
+/** 获取某天的其他收入明细 */
+export async function getOtherRevenueRecords(date: string): Promise<OtherRevenueDetail[]> {
+  const db = getDatabase();
+  const result = await db.execute({
+    sql: `SELECT id, revenue_date, amount, COALESCE(cost, 0) as cost, COALESCE(description, '') as description, 
+          COALESCE(category, '其他') as category, COALESCE(operator, '') as operator, created_at 
+          FROM other_revenues WHERE revenue_date = ? ORDER BY created_at DESC`,
+    args: [date],
+  });
+  return result.rows.map(row => ({
+    id: row.id as number,
+    revenue_date: row.revenue_date as string,
+    amount: row.amount as number,
+    cost: row.cost as number,
+    description: row.description as string,
+    category: row.category as string,
+    operator: row.operator as string,
+    created_at: row.created_at as string,
+  }));
+}
+
+/** 添加其他收入记录 */
+export async function addOtherRevenueRecord(data: { 
+  date: string; amount: number; cost: number; description: string; category: string; operator: string 
+}): Promise<OtherRevenueDetail> {
+  const db = getDatabase();
+  await db.execute({
+    sql: `INSERT INTO other_revenues (revenue_date, amount, cost, description, category, operator) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [data.date, data.amount, data.cost, data.description, data.category, data.operator],
+  });
+  const result = await db.execute({
+    sql: `SELECT * FROM other_revenues WHERE revenue_date = ? ORDER BY id DESC LIMIT 1`,
+    args: [data.date],
+  });
+  const row = result.rows[0];
+  return {
+    id: row.id as number,
+    revenue_date: row.revenue_date as string,
+    amount: row.amount as number,
+    cost: (row.cost as number) || 0,
+    description: (row.description as string) || '',
+    category: (row.category as string) || '其他',
+    operator: (row.operator as string) || '',
+    created_at: row.created_at as string,
+  };
+}
+
+/** 删除其他收入记录 */
+export async function deleteOtherRevenueRecord(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db.execute({ sql: 'DELETE FROM other_revenues WHERE id = ?', args: [id] });
+  return result.rowsAffected > 0;
+}

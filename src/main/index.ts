@@ -10,7 +10,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fetchPrinterDetail } from './scraper';
-import { initDatabase, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData, getAllCodeNotes, saveCodeNote, importCodeNotes, getWasteRecords, addWasteRecord, deleteWasteRecord } from './database';
+import { initDatabase, closeDatabase, getAllPrinters, addPrinter as dbAddPrinter, updatePrinter as dbUpdatePrinter, deletePrinter as dbDeletePrinter, DBPrinter, checkIPExistsInLogs, getAllPrinterStats, getUniquePrintersFromLogs, getCloudMonthlyRevenueData, addCloudOtherRevenue, updateWasteRecord, getMonthlyRent, updateMonthlyRent, getDashboardStats, getDashboardChartData, getDashboardPieData, syncAllPrinterData, getCloudComparisonData, getAllCodeNotes, saveCodeNote, importCodeNotes, getWasteRecords, addWasteRecord, deleteWasteRecord, getAllOperators, addOperator, updateOperator, deleteOperator, getAllDamageReasons, addDamageReason, updateDamageReason, deleteDamageReason, getOtherRevenueRecords, addOtherRevenueRecord, deleteOtherRevenueRecord } from './database';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -326,6 +326,128 @@ ipcMain.handle('import-code-notes', async (_, notes: { codeType: 'sp' | 'error';
     return { success: true, data: count };
   } catch (error: any) {
     console.error('导入备注失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================
+// IPC 处理器 - 操作人管理
+// ============================================
+
+ipcMain.handle('get-operators', async () => {
+  try {
+    const operators = await getAllOperators();
+    return { success: true, data: operators };
+  } catch (error: any) {
+    console.error('获取操作人失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('add-operator', async (_, name: string) => {
+  try {
+    const operator = await addOperator(name);
+    return { success: true, data: operator };
+  } catch (error: any) {
+    console.error('添加操作人失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('update-operator', async (_, id: number, name: string) => {
+  try {
+    const operator = await updateOperator(id, name);
+    return { success: true, data: operator };
+  } catch (error: any) {
+    console.error('更新操作人失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-operator', async (_, id: number) => {
+  try {
+    await deleteOperator(id);
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除操作人失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================
+// IPC 处理器 - 损耗理由管理
+// ============================================
+
+ipcMain.handle('get-damage-reasons', async () => {
+  try {
+    const reasons = await getAllDamageReasons();
+    return { success: true, data: reasons };
+  } catch (error: any) {
+    console.error('获取损耗理由失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('add-damage-reason', async (_, reason: string) => {
+  try {
+    const damageReason = await addDamageReason(reason);
+    return { success: true, data: damageReason };
+  } catch (error: any) {
+    console.error('添加损耗理由失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('update-damage-reason', async (_, id: number, reason: string) => {
+  try {
+    const damageReason = await updateDamageReason(id, reason);
+    return { success: true, data: damageReason };
+  } catch (error: any) {
+    console.error('更新损耗理由失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-damage-reason', async (_, id: number) => {
+  try {
+    await deleteDamageReason(id);
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除损耗理由失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================
+// IPC 处理器 - 其他收入明细管理
+// ============================================
+
+ipcMain.handle('get-other-revenue-records', async (_, date: string) => {
+  try {
+    const records = await getOtherRevenueRecords(date);
+    return { success: true, data: records };
+  } catch (error: any) {
+    console.error('获取其他收入记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('add-other-revenue-record', async (_, data: { date: string; amount: number; cost: number; description: string; category: string; operator: string }) => {
+  try {
+    const record = await addOtherRevenueRecord(data);
+    return { success: true, data: record };
+  } catch (error: any) {
+    console.error('添加其他收入记录失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-other-revenue-record', async (_, id: number) => {
+  try {
+    await deleteOtherRevenueRecord(id);
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除其他收入记录失败:', error);
     return { success: false, error: error.message };
   }
 });

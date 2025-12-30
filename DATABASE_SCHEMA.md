@@ -58,21 +58,35 @@ CREATE UNIQUE INDEX idx_printers_name ON printers(machine_name);
 
 ### 3. other_revenues - 其他收入表
 
-存储除打印收入外的其他收入记录。
+存储除打印收入外的其他收入记录（支持多条记录）。
 
 ```sql
 CREATE TABLE other_revenues (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   revenue_date TEXT NOT NULL,         -- 日期 YYYY-MM-DD
-  amount REAL NOT NULL,               -- 金额
+  amount REAL NOT NULL,               -- 收入金额
+  cost REAL DEFAULT 0,                -- 成本
   description TEXT,                   -- 描述/备注
   category TEXT DEFAULT '其他',       -- 分类
+  operator TEXT DEFAULT '',           -- 操作人
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 索引
 CREATE INDEX idx_other_revenues_date ON other_revenues(revenue_date);
 ```
+
+**字段说明：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INTEGER | 自增主键 |
+| revenue_date | TEXT | 日期，格式 YYYY-MM-DD |
+| amount | REAL | 收入金额（元） |
+| cost | REAL | 成本（元） |
+| description | TEXT | 描述/备注 |
+| category | TEXT | 分类，默认"其他" |
+| operator | TEXT | 操作人 |
+| created_at | DATETIME | 创建时间 |
 
 ---
 
@@ -129,7 +143,49 @@ CREATE INDEX idx_waste_detail_machine_date ON waste_records_detail(machine_ip, w
 
 ---
 
-### 5. settings - 系统设置表
+### 6. operators - 操作人表
+
+存储操作人信息，用于损耗记录和其他收入的操作人选择。
+
+```sql
+CREATE TABLE operators (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,          -- 操作人姓名
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**字段说明：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INTEGER | 自增主键 |
+| name | TEXT | 操作人姓名，唯一 |
+| created_at | DATETIME | 创建时间 |
+
+---
+
+### 7. damage_reasons - 损耗理由表
+
+存储损耗理由，用于损耗记录的理由选择。
+
+```sql
+CREATE TABLE damage_reasons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reason TEXT NOT NULL UNIQUE,        -- 损耗理由
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**字段说明：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INTEGER | 自增主键 |
+| reason | TEXT | 损耗理由，唯一 |
+| created_at | DATETIME | 创建时间 |
+
+---
+
+### 8. settings - 系统设置表
 
 存储系统配置，如房租成本等。
 
@@ -246,6 +302,24 @@ CREATE TABLE IF NOT EXISTS code_notes (
 
 -- 唯一约束：每个代码类型+代码只有一条备注
 CREATE UNIQUE INDEX IF NOT EXISTS idx_code_notes_unique ON code_notes(code_type, code);
+
+-- 7. 创建操作人表
+CREATE TABLE IF NOT EXISTS operators (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,          -- 操作人姓名
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. 创建损耗理由表
+CREATE TABLE IF NOT EXISTS damage_reasons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reason TEXT NOT NULL UNIQUE,        -- 损耗理由
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. 更新其他收入表（添加 cost 和 operator 字段）
+-- ALTER TABLE other_revenues ADD COLUMN cost REAL DEFAULT 0;
+-- ALTER TABLE other_revenues ADD COLUMN operator TEXT DEFAULT '';
 ```
 
 ---

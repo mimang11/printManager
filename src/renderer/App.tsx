@@ -9,8 +9,9 @@ import DataComparison from './pages/DataComparison';
 import RevenueManager from './pages/RevenueManager';
 import SPCodeQuery from './pages/SPCodeQuery';
 import ErrorCodeQuery from './pages/ErrorCodeQuery';
+import OperatorManager from './pages/OperatorManager';
 
-type PageType = 'dashboard' | 'devices' | 'comparison' | 'revenue' | 'spcode' | 'errorcode';
+type PageType = 'dashboard' | 'devices' | 'comparison' | 'revenue' | 'spcode' | 'errorcode' | 'operators';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
@@ -39,6 +40,7 @@ function App() {
       case 'revenue': return <RevenueManager />;
       case 'spcode': return <SPCodeQuery />;
       case 'errorcode': return <ErrorCodeQuery />;
+      case 'operators': return <OperatorManager />;
       default: return <Dashboard />;
     }
   };
@@ -71,6 +73,10 @@ function App() {
           <div className={`nav-item ${currentPage === 'errorcode' ? 'active' : ''}`}
             onClick={() => setCurrentPage('errorcode')}>
             <span className="nav-icon">⚠️</span>错误代码查询
+          </div>
+          <div className={`nav-item ${currentPage === 'operators' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('operators')}>
+            <span className="nav-icon">👥</span>基础数据
           </div>
         </nav>
       </aside>

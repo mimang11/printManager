@@ -3,7 +3,7 @@
  * 从 Turso 云端数据库获取营收数据
  */
 import React, { useState, useEffect } from 'react';
-import { CloudMonthlyRevenueData, WasteRecordDetail } from '../../shared/types';
+import { CloudMonthlyRevenueData, WasteRecordDetail, Operator, DamageReason, OtherRevenueDetail } from '../../shared/types';
 
 function RevenueManager() {
   const now = new Date();
@@ -27,7 +27,12 @@ function RevenueManager() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [otherAmount, setOtherAmount] = useState(0);
+  const [otherCost, setOtherCost] = useState(0);
   const [otherNote, setOtherNote] = useState('');
+  const [otherOperator, setOtherOperator] = useState('');
+  const [otherRecords, setOtherRecords] = useState<OtherRevenueDetail[]>([]);
+  const [otherLoading, setOtherLoading] = useState(false);
+  const [deleteOtherConfirmId, setDeleteOtherConfirmId] = useState<number | null>(null);
 
   // 损耗上报弹窗
   const [showWasteModal, setShowWasteModal] = useState(false);
@@ -37,10 +42,14 @@ function RevenueManager() {
   const [wasteMaxCount, setWasteMaxCount] = useState(0);
   const [wasteRecords, setWasteRecords] = useState<WasteRecordDetail[]>([]);
   const [newWasteCount, setNewWasteCount] = useState(0);
-  const [newWasteNote, setNewWasteNote] = useState('');
+  const [newWasteReason, setNewWasteReason] = useState('');
   const [newWasteOperator, setNewWasteOperator] = useState('');
   const [wasteLoading, setWasteLoading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null); // 删除确认弹窗
+
+  // 操作人和损耗理由列表
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [damageReasons, setDamageReasons] = useState<DamageReason[]>([]);
 
   // 加载月租金
   const loadRent = async () => {
@@ -52,6 +61,20 @@ function RevenueManager() {
       }
     } catch (err) {
       console.error('加载月租金失败:', err);
+    }
+  };
+
+  // 加载操作人和损耗理由
+  const loadBaseData = async () => {
+    try {
+      const [opResult, reasonResult] = await Promise.all([
+        window.electronAPI.getOperators(),
+        window.electronAPI.getDamageReasons(),
+      ]);
+      if (opResult.success && opResult.data) setOperators(opResult.data);
+      if (reasonResult.success && reasonResult.data) setDamageReasons(reasonResult.data);
+    } catch (err) {
+      console.error('加载基础数据失败:', err);
     }
   };
 
@@ -88,19 +111,24 @@ function RevenueManager() {
     return msg.length > 50 ? '服务器错误，请稍后重试' : msg;
   };
 
-  useEffect(() => { loadRent(); }, []);
+  useEffect(() => { loadRent(); loadBaseData(); }, []);
   useEffect(() => { loadData(); setFilterDay(null); }, [year, month]);
 
   const handleAddOther = async () => {
     if (!selectedDate) return;
+    if (!otherOperator) {
+      alert('请选择操作人');
+      return;
+    }
     try {
-      const result = await window.electronAPI.addCloudOtherRevenue({
-        date: selectedDate, amount: otherAmount,
-        description: otherNote, category: '其他',
+      const result = await window.electronAPI.addOtherRevenueRecord({
+        date: selectedDate, amount: otherAmount, cost: otherCost,
+        description: otherNote, category: '其他', operator: otherOperator,
       });
-      if (result.success) {
-        setShowAddModal(false);
+      if (result.success && result.data) {
+        setOtherRecords([result.data, ...otherRecords]);
         setOtherAmount(0);
+        setOtherCost(0);
         setOtherNote('');
         loadData();
       } else {
@@ -111,6 +139,54 @@ function RevenueManager() {
     }
   };
 
+  // 打开其他收入弹窗
+  const openOtherModal = async (date: string) => {
+    setSelectedDate(date);
+    setOtherAmount(0);
+    setOtherCost(0);
+    setOtherNote('');
+    setOtherOperator('');
+    setShowAddModal(true);
+    
+    // 加载已有的其他收入记录
+    setOtherLoading(true);
+    try {
+      const result = await window.electronAPI.getOtherRevenueRecords(date);
+      if (result.success && result.data) {
+        setOtherRecords(result.data);
+      } else {
+        setOtherRecords([]);
+      }
+    } catch (err) {
+      console.error('加载其他收入记录失败:', err);
+      setOtherRecords([]);
+    } finally {
+      setOtherLoading(false);
+    }
+  };
+
+  // 删除其他收入记录
+  const handleDeleteOther = async (id: number) => {
+    setDeleteOtherConfirmId(id);
+  };
+
+  const confirmDeleteOther = async () => {
+    if (deleteOtherConfirmId === null) return;
+    try {
+      const result = await window.electronAPI.deleteOtherRevenueRecord(deleteOtherConfirmId);
+      if (result.success) {
+        setOtherRecords(prev => prev.filter(r => r.id !== deleteOtherConfirmId));
+        loadData();
+      } else {
+        alert('删除失败: ' + result.error);
+      }
+    } catch (err: any) {
+      alert('删除失败: ' + err.message);
+    } finally {
+      setDeleteOtherConfirmId(null);
+    }
+  };
+
   // 打开损耗上报弹窗
   const openWasteModal = async (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number) => {
     setWasteDate(date);
@@ -118,7 +194,7 @@ function RevenueManager() {
     setWastePrinterName(printerName);
     setWasteMaxCount(maxCount);
     setNewWasteCount(0);
-    setNewWasteNote('');
+    setNewWasteReason('');
     setNewWasteOperator('');
     setShowWasteModal(true);
     
@@ -159,13 +235,13 @@ function RevenueManager() {
         machineIP: wastePrinterId,
         wasteDate: wasteDate,
         wasteCount: newWasteCount,
-        note: newWasteNote,
+        note: newWasteReason,
         operator: newWasteOperator.trim(),
       });
       if (result.success && result.data) {
         setWasteRecords([result.data, ...wasteRecords]);
         setNewWasteCount(0);
-        setNewWasteNote('');
+        setNewWasteReason('');
         loadData(); // 刷新主数据
       } else {
         alert('添加失败: ' + result.error);
@@ -581,7 +657,7 @@ function RevenueManager() {
                         </div>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
-                        <button className="btn btn-sm btn-secondary" onClick={() => { setSelectedDate(day.date); setShowAddModal(true); }}>
+                        <button className="btn btn-sm btn-secondary" onClick={() => openOtherModal(day.date)}>
                           +其他
                         </button>
                       </td>
@@ -634,27 +710,106 @@ function RevenueManager() {
       {/* 添加其他收入弹窗 */}
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">添加其他收入 - {selectedDate}</h2>
+              <h2 className="modal-title">💰 其他收入管理 - {selectedDate}</h2>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>&times;</button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">金额 (元)</label>
-                <input type="number" step="0.01" className="form-input" value={otherAmount}
-                  onChange={(e) => setOtherAmount(parseFloat(e.target.value) || 0)} />
+              {/* 当前汇总 */}
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>日期: {selectedDate}</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>记录数: {otherRecords.length} 条</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: '#22c55e', fontWeight: 600 }}>
+                    总收入: ¥{otherRecords.reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#ef4444' }}>
+                    总成本: ¥{otherRecords.reduce((sum, r) => sum + r.cost, 0).toFixed(2)}
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">备注</label>
-                <input type="text" className="form-input" placeholder="输入备注说明" value={otherNote}
-                  onChange={(e) => setOtherNote(e.target.value)} />
+              
+              {/* 添加新记录 */}
+              <div style={{ marginBottom: '16px', padding: '16px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#065f46' }}>➕ 添加收入记录</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">收入金额 (元) *</label>
+                    <input type="number" step="0.01" className="form-input" value={otherAmount || ''}
+                      onChange={(e) => setOtherAmount(parseFloat(e.target.value) || 0)} placeholder="输入金额" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">成本 (元)</label>
+                    <input type="number" step="0.01" className="form-input" value={otherCost || ''}
+                      onChange={(e) => setOtherCost(parseFloat(e.target.value) || 0)} placeholder="输入成本" />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">操作人 *</label>
+                    <select className="form-input" value={otherOperator} onChange={(e) => setOtherOperator(e.target.value)}>
+                      <option value="">请选择操作人</option>
+                      {operators.map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">备注</label>
+                    <input type="text" className="form-input" placeholder="输入备注" value={otherNote}
+                      onChange={(e) => setOtherNote(e.target.value)} />
+                  </div>
+                </div>
+                <button className="btn btn-primary" onClick={handleAddOther} style={{ width: '100%', marginTop: '12px' }}>
+                  添加收入记录
+                </button>
+              </div>
+              
+              {/* 已有记录列表 */}
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: '8px', color: '#374151' }}>📋 收入记录 ({otherRecords.length})</div>
+                {otherLoading ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>加载中...</div>
+                ) : otherRecords.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', background: '#f9fafb', borderRadius: '8px' }}>暂无收入记录</div>
+                ) : (
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {otherRecords.map(record => (
+                      <div key={record.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', marginBottom: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 600, color: '#22c55e' }}>+¥{record.amount.toFixed(2)}</span>
+                            {record.cost > 0 && <span style={{ fontSize: '12px', color: '#ef4444' }}>成本: ¥{record.cost.toFixed(2)}</span>}
+                            <span style={{ fontSize: '12px', color: '#6b7280', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{record.operator}</span>
+                          </div>
+                          {record.description && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{record.description}</div>}
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{record.created_at}</div>
+                        </div>
+                        <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                          onClick={() => handleDeleteOther(record.id)}>删除</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>取消</button>
-              <button className="btn btn-primary" onClick={handleAddOther}>保存</button>
+              <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>关闭</button>
             </div>
+
+            {/* 删除确认弹窗 */}
+            {deleteOtherConfirmId !== null && (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+                <div style={{ background: 'white', padding: '24px', borderRadius: '12px', textAlign: 'center', maxWidth: '300px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>确定删除此收入记录？</div>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                    <button className="btn btn-secondary" onClick={() => setDeleteOtherConfirmId(null)}>取消</button>
+                    <button className="btn" style={{ background: '#dc2626', color: 'white' }} onClick={confirmDeleteOther}>删除</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -693,14 +848,20 @@ function RevenueManager() {
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label">操作人 *</label>
-                    <input type="text" className="form-input" value={newWasteOperator}
-                      onChange={(e) => setNewWasteOperator(e.target.value)} placeholder="输入操作人" autoComplete="off" />
+                    <select className="form-input" value={newWasteOperator}
+                      onChange={(e) => setNewWasteOperator(e.target.value)}>
+                      <option value="">请选择操作人</option>
+                      {operators.map(op => <option key={op.id} value={op.name}>{op.name}</option>)}
+                    </select>
                   </div>
                 </div>
                 <div className="form-group" style={{ marginTop: '12px', marginBottom: '12px' }}>
-                  <label className="form-label">备注</label>
-                  <input type="text" className="form-input" value={newWasteNote}
-                    onChange={(e) => setNewWasteNote(e.target.value)} placeholder="如：卡纸、错打等" autoComplete="off" />
+                  <label className="form-label">损耗理由</label>
+                  <select className="form-input" value={newWasteReason}
+                    onChange={(e) => setNewWasteReason(e.target.value)}>
+                    <option value="">请选择损耗理由</option>
+                    {damageReasons.map(r => <option key={r.id} value={r.reason}>{r.reason}</option>)}
+                  </select>
                 </div>
                 <button className="btn btn-primary" onClick={handleAddWaste} style={{ width: '100%' }} disabled={maxNewWaste <= 0}>
                   {maxNewWaste <= 0 ? '已达到最大损耗数量' : '添加损耗记录'}
