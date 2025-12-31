@@ -822,6 +822,13 @@ export interface DashboardStatsData {
   prevRevenue: number;
   countChange: number;
   revenueChange: number;
+  // 收入明细
+  printRevenue: number;
+  otherIncome: number;
+  // 成本明细
+  printCost: number;
+  otherCost: number;
+  wasteCost: number;
 }
 
 /** 看板图表数据点 */
