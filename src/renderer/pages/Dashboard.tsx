@@ -119,9 +119,13 @@ function Dashboard() {
     try {
       const result = await window.electronAPI.syncPrinterData();
       if (result.success && result.data) {
-        const { synced, failed } = result.data;
+        const { synced, failed, details } = result.data;
         if (failed > 0) {
-          setSyncToast({ show: true, success: false, message: `同步完成: ${synced}成功, ${failed}失败` });
+          const failedNames = details
+            .filter((d: any) => !d.success)
+            .map((d: any) => d.name)
+            .join(', ');
+          setSyncToast({ show: true, success: false, message: `同步完成: ${synced}成功, ${failed}失败 (${failedNames})` });
         } else {
           setSyncToast({ show: true, success: true, message: `✓ ${synced}台打印机数据已同步` });
         }
