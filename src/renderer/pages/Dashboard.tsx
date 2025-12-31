@@ -35,6 +35,9 @@ function Dashboard() {
   
   // 金额隐藏状态（默认隐藏）
   const [hideAmount, setHideAmount] = useState(true);
+  
+  // 收入明细弹窗
+  const [showRevenueDetail, setShowRevenueDetail] = useState(false);
 
   // 格式化错误信息
   const formatError = (msg?: string): string => {
@@ -307,11 +310,11 @@ function Dashboard() {
             {(stats?.countChange || 0) >= 0 ? '↑' : '↓'} {Math.abs(stats?.countChange || 0)}% 环比{prevLabel}
           </div>
         </div>
-        <div className="kpi-card">
+        <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={() => setShowRevenueDetail(true)}>
           <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>{periodLabel}预估营收</span>
+            <span>{periodLabel}预估营收 <span style={{ fontSize: '11px', color: '#9ca3af' }}>点击查看明细</span></span>
             <button 
-              onClick={() => setHideAmount(!hideAmount)} 
+              onClick={(e) => { e.stopPropagation(); setHideAmount(!hideAmount); }} 
               style={{ 
                 background: 'none', border: 'none', cursor: 'pointer', 
                 fontSize: '16px', padding: '0 4px', opacity: 0.6 
@@ -397,6 +400,75 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* 收入明细弹窗 */}
+      {showRevenueDetail && (
+        <div className="modal-overlay" onClick={() => setShowRevenueDetail(false)}>
+          <div className="modal" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">💰 {periodLabel}收入明细</h2>
+              <button className="modal-close" onClick={() => setShowRevenueDetail(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {/* 收入部分 */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#22c55e', fontSize: '15px' }}>📈 收入项目</div>
+                <div style={{ background: '#f0fdf4', borderRadius: '8px', padding: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #dcfce7' }}>
+                    <span style={{ color: '#374151' }}>🖨️ 打印收入</span>
+                    <span style={{ fontWeight: 600, color: '#22c55e' }}>{formatAmount(stats?.printRevenue || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                    <span style={{ color: '#374151' }}>📦 其他收入</span>
+                    <span style={{ fontWeight: 600, color: '#22c55e' }}>{formatAmount(stats?.otherIncome || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', marginTop: '8px', borderTop: '2px solid #22c55e' }}>
+                    <span style={{ fontWeight: 700, color: '#166534' }}>总收入</span>
+                    <span style={{ fontWeight: 700, color: '#166534', fontSize: '16px' }}>{formatAmount(stats?.totalRevenue || 0)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 成本部分 */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#ef4444', fontSize: '15px' }}>📉 成本项目</div>
+                <div style={{ background: '#fef2f2', borderRadius: '8px', padding: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #fecaca' }}>
+                    <span style={{ color: '#374151' }}>🖨️ 打印耗材成本</span>
+                    <span style={{ fontWeight: 600, color: '#ef4444' }}>{formatAmount(stats?.printCost || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #fecaca' }}>
+                    <span style={{ color: '#374151' }}>📦 其他收入成本</span>
+                    <span style={{ fontWeight: 600, color: '#ef4444' }}>{formatAmount(stats?.otherCost || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                    <span style={{ color: '#374151' }}>🗑️ 损耗金额</span>
+                    <span style={{ fontWeight: 600, color: '#f59e0b' }}>{formatAmount(stats?.wasteCost || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', marginTop: '8px', borderTop: '2px solid #ef4444' }}>
+                    <span style={{ fontWeight: 700, color: '#991b1b' }}>总成本</span>
+                    <span style={{ fontWeight: 700, color: '#991b1b', fontSize: '16px' }}>{formatAmount(stats?.totalCost || 0)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 利润汇总 */}
+              <div style={{ 
+                background: (stats?.totalProfit || 0) >= 0 ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', 
+                borderRadius: '8px', padding: '16px', textAlign: 'center' 
+              }}>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>毛利润</div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: (stats?.totalProfit || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+                  {formatAmount(stats?.totalProfit || 0)}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowRevenueDetail(false)}>关闭</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

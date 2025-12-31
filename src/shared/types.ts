@@ -126,6 +126,13 @@ export interface DashboardStatsData {
   prevRevenue: number;
   countChange: number;
   revenueChange: number;
+  // 收入明细
+  printRevenue: number;      // 打印收入
+  otherIncome: number;       // 其他收入
+  // 成本明细
+  printCost: number;         // 打印耗材成本
+  otherCost: number;         // 其他收入成本
+  wasteCost: number;         // 损耗金额
 }
 
 /** 看板图表数据点 */

@@ -903,18 +903,61 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   const current = calcPrints(currentResult.rows, currentBaseDate, startDate);
   const prev = calcPrints(prevResult.rows, prevBaseDate, prevStartDate);
   
+  // 获取其他收入及其成本
+  const currentOtherResult = await db.execute({
+    sql: `SELECT COALESCE(SUM(amount), 0) as total, COALESCE(SUM(cost), 0) as totalCost FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
+    args: [startDate, endDate],
+  });
+  const prevOtherResult = await db.execute({
+    sql: `SELECT COALESCE(SUM(amount), 0) as total, COALESCE(SUM(cost), 0) as totalCost FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
+    args: [prevStartDate, prevEndDate],
+  });
+  const currentOtherIncome = Number(currentOtherResult.rows[0]?.total) || 0;
+  const currentOtherCost = Number(currentOtherResult.rows[0]?.totalCost) || 0;
+  const prevOtherIncome = Number(prevOtherResult.rows[0]?.total) || 0;
+  
+  // 获取损耗数据
+  const currentWasteResult = await db.execute({
+    sql: `SELECT wr.machine_ip, SUM(wr.waste_count) as waste_count 
+          FROM waste_records wr WHERE wr.waste_date >= ? AND wr.waste_date <= ? GROUP BY wr.machine_ip`,
+    args: [startDate, endDate],
+  });
+  // 计算损耗金额
+  let currentWasteCost = 0;
+  for (const row of currentWasteResult.rows) {
+    const ip = row.machine_ip as string;
+    const wasteCount = Number(row.waste_count) || 0;
+    const printer = printerMap.get(ip);
+    const price = printer?.price_per_page || 0.5;
+    currentWasteCost += wasteCount * price;
+  }
+  
+  // 总营收 = 打印营收 + 其他收入
+  const totalRevenue = current.totalRevenue + currentOtherIncome;
+  const prevTotalRevenue = prev.totalRevenue + prevOtherIncome;
+  
+  // 总成本 = 打印成本 + 其他收入成本 + 损耗
+  const totalCost = current.totalCost + currentOtherCost + currentWasteCost;
+  
   const countChange = prev.totalCount > 0 ? ((current.totalCount - prev.totalCount) / prev.totalCount) * 100 : 0;
-  const revenueChange = prev.totalRevenue > 0 ? ((current.totalRevenue - prev.totalRevenue) / prev.totalRevenue) * 100 : 0;
+  const revenueChange = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
   
   return {
     totalCount: current.totalCount,
-    totalRevenue: Math.round(current.totalRevenue * 100) / 100,
-    totalCost: Math.round(current.totalCost * 100) / 100,
-    totalProfit: Math.round((current.totalRevenue - current.totalCost) * 100) / 100,
+    totalRevenue: Math.round(totalRevenue * 100) / 100,
+    totalCost: Math.round(totalCost * 100) / 100,
+    totalProfit: Math.round((totalRevenue - totalCost) * 100) / 100,
     prevCount: prev.totalCount,
-    prevRevenue: Math.round(prev.totalRevenue * 100) / 100,
+    prevRevenue: Math.round(prevTotalRevenue * 100) / 100,
     countChange: Math.round(countChange * 10) / 10,
     revenueChange: Math.round(revenueChange * 10) / 10,
+    // 收入明细
+    printRevenue: Math.round(current.totalRevenue * 100) / 100,
+    otherIncome: Math.round(currentOtherIncome * 100) / 100,
+    // 成本明细
+    printCost: Math.round(current.totalCost * 100) / 100,
+    otherCost: Math.round(currentOtherCost * 100) / 100,
+    wasteCost: Math.round(currentWasteCost * 100) / 100,
   };
 }
 
