@@ -511,6 +511,7 @@ export interface CloudMonthlyRevenueData {
     profit: number;
   }[];
   otherIncome: number;
+  otherCost: number;
   otherIncomeNote: string;
   netProfit: number;
   rent: number;
@@ -557,16 +558,17 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
   
   // 获取其他收入
   const otherResult = await db.execute({
-    sql: `SELECT revenue_date, amount, description FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
+    sql: `SELECT revenue_date, amount, COALESCE(cost, 0) as cost, description FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
     args: [startDate, endDate],
   });
   
   // 按日期分组其他收入
-  const otherIncomeMap = new Map<string, { amount: number; note: string }>();
+  const otherIncomeMap = new Map<string, { amount: number; cost: number; note: string }>();
   for (const row of otherResult.rows) {
     const date = row.revenue_date as string;
-    const existing = otherIncomeMap.get(date) || { amount: 0, note: '' };
+    const existing = otherIncomeMap.get(date) || { amount: 0, cost: 0, note: '' };
     existing.amount += row.amount as number;
+    existing.cost += row.cost as number;
     if (row.description) {
       existing.note = existing.note ? `${existing.note}; ${row.description}` : row.description as string;
     }
@@ -620,9 +622,9 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
       const profit = revenue - cost;
       
       if (!dailyData.has(date)) {
-        const otherInfo = otherIncomeMap.get(date) || { amount: 0, note: '' };
+        const otherInfo = otherIncomeMap.get(date) || { amount: 0, cost: 0, note: '' };
         dailyData.set(date, {
-          date, printers: [], otherIncome: otherInfo.amount,
+          date, printers: [], otherIncome: otherInfo.amount, otherCost: otherInfo.cost,
           otherIncomeNote: otherInfo.note, netProfit: 0, rent: 0,
         });
       }
@@ -638,7 +640,7 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
   for (const [, dayData] of dailyData) {
     const totalRevenue = dayData.printers.reduce((sum, p) => sum + p.revenue, 0);
     const totalCost = dayData.printers.reduce((sum, p) => sum + p.cost, 0);
-    dayData.netProfit = totalRevenue - totalCost + dayData.otherIncome;
+    dayData.netProfit = totalRevenue - totalCost + dayData.otherIncome - dayData.otherCost;
   }
   
   return Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -851,26 +853,108 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   const printers = await getAllPrinters();
   const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
   
-  // 计算前一天日期（用于获取基准值）
-  const getBaseDateStr = (dateStr: string) => {
-    const d = new Date(dateStr);
+  // 查找最近有数据的基准日期（往前最多找30天）
+  const findBaseDate = async (targetDate: string): Promise<string> => {
+    const d = new Date(targetDate);
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    const baseDateStr = d.toISOString().split('T')[0];
+    
+    // 检查前一天是否有数据
+    const checkResult = await db.execute({
+      sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
+      args: [baseDateStr],
+    });
+    
+    if (Number(checkResult.rows[0]?.cnt) > 0) {
+      return baseDateStr;
+    }
+    
+    // 如果前一天没有数据，往前找最近有数据的日期（最多30天）
+    const searchStart = new Date(targetDate);
+    searchStart.setDate(searchStart.getDate() - 30);
+    const searchStartStr = searchStart.toISOString().split('T')[0];
+    
+    const nearestResult = await db.execute({
+      sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
+      args: [searchStartStr, targetDate],
+    });
+    
+    const nearest = nearestResult.rows[0]?.nearest as string | null;
+    return nearest || baseDateStr;
   };
   
-  const currentBaseDate = getBaseDateStr(startDate);
-  const prevBaseDate = getBaseDateStr(prevStartDate);
+  // 查找最近有数据的日期（用于环比对比）
+  const findNearestDataDate = async (targetDate: string): Promise<string | null> => {
+    // 检查目标日期是否有数据
+    const checkResult = await db.execute({
+      sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
+      args: [targetDate],
+    });
+    
+    if (Number(checkResult.rows[0]?.cnt) > 0) {
+      return targetDate;
+    }
+    
+    // 如果目标日期没有数据，往前找最近有数据的日期（最多30天）
+    const searchStart = new Date(targetDate);
+    searchStart.setDate(searchStart.getDate() - 30);
+    const searchStartStr = searchStart.toISOString().split('T')[0];
+    
+    const nearestResult = await db.execute({
+      sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
+      args: [searchStartStr, targetDate],
+    });
+    
+    return nearestResult.rows[0]?.nearest as string | null;
+  };
   
-  // 获取当前周期数据（包含前一天作为基准）
+  // 对于日视图，如果前一天没有数据，往前找有数据的日期
+  let actualPrevStartDate = prevStartDate;
+  let actualPrevEndDate = prevEndDate;
+  let prevHasValidData = true; // 标记前一期是否有有效的环比数据
+  
+  // 判断是否是日视图（startDate == endDate）
+  if (startDate === endDate) {
+    const nearestPrevDate = await findNearestDataDate(prevStartDate);
+    if (nearestPrevDate) {
+      actualPrevStartDate = nearestPrevDate;
+      actualPrevEndDate = nearestPrevDate;
+      
+      // 检查前一期的基准日期是否是前一期日期的前一天
+      // 如果不是，说明中间有数据缺失，环比数据不准确
+      const expectedPrevBaseDate = new Date(nearestPrevDate);
+      expectedPrevBaseDate.setDate(expectedPrevBaseDate.getDate() - 1);
+      const expectedPrevBaseDateStr = expectedPrevBaseDate.toISOString().split('T')[0];
+      
+      const checkPrevBase = await db.execute({
+        sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
+        args: [expectedPrevBaseDateStr],
+      });
+      
+      if (Number(checkPrevBase.rows[0]?.cnt) === 0) {
+        // 前一期的前一天没有数据，环比数据可能不准确
+        // 但我们仍然尝试计算，只是要确保基准日期正确
+        prevHasValidData = true; // 仍然计算，但使用找到的最近基准日期
+      }
+    } else {
+      // 如果找不到任何有数据的日期，标记为无数据
+      prevHasValidData = false;
+    }
+  }
+  
+  const currentBaseDate = await findBaseDate(startDate);
+  const prevBaseDate = await findBaseDate(actualPrevStartDate);
+  
+  // 获取当前周期数据（包含基准日期）
   const currentResult = await db.execute({
     sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
     args: [currentBaseDate, endDate],
   });
   
-  // 获取前一周期数据（包含前一天作为基准）
+  // 获取前一周期数据（包含基准日期）
   const prevResult = await db.execute({
     sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
-    args: [prevBaseDate, prevEndDate],
+    args: [prevBaseDate, actualPrevEndDate],
   });
   
   // 计算实际打印量 (累计差值)，baseDate 是基准日期（不计入统计，仅作为第一天的前一天）
@@ -893,10 +977,11 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
       
       for (let i = 0; i < dates.length; i++) {
         const currentDate = dates[i];
-        // 跳过基准日期，它只用于计算第一天的差值
+        // 跳过基准日期之前的数据，它只用于计算第一天的差值
         if (currentDate < actualStartDate) continue;
         
         const curr = dateMap.get(currentDate) || 0;
+        // 找到前一个有数据的日期（可能不是连续的）
         const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
         const dailyPrints = Math.max(0, curr - prev);
         totalCount += dailyPrints;
@@ -908,7 +993,7 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   };
   
   const current = calcPrints(currentResult.rows, currentBaseDate, startDate);
-  const prev = calcPrints(prevResult.rows, prevBaseDate, prevStartDate);
+  const prev = calcPrints(prevResult.rows, prevBaseDate, actualPrevStartDate);
   
   // 获取其他收入及其成本
   const currentOtherResult = await db.execute({
@@ -917,7 +1002,7 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   });
   const prevOtherResult = await db.execute({
     sql: `SELECT COALESCE(SUM(amount), 0) as total, COALESCE(SUM(cost), 0) as totalCost FROM other_revenues WHERE revenue_date >= ? AND revenue_date <= ?`,
-    args: [prevStartDate, prevEndDate],
+    args: [actualPrevStartDate, actualPrevEndDate],
   });
   const currentOtherIncome = Number(currentOtherResult.rows[0]?.total) || 0;
   const currentOtherCost = Number(currentOtherResult.rows[0]?.totalCost) || 0;
@@ -946,8 +1031,9 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   // 总成本 = 打印成本 + 其他收入成本 + 损耗
   const totalCost = current.totalCost + currentOtherCost + currentWasteCost;
   
-  const countChange = prev.totalCount > 0 ? ((current.totalCount - prev.totalCount) / prev.totalCount) * 100 : 0;
-  const revenueChange = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
+  // 计算环比变化 - 如果前一期没有数据，环比为0
+  const countChange = (prevHasValidData && prev.totalCount > 0) ? ((current.totalCount - prev.totalCount) / prev.totalCount) * 100 : 0;
+  const revenueChange = (prevHasValidData && prevTotalRevenue > 0) ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
   
   return {
     totalCount: current.totalCount,
@@ -1021,11 +1107,34 @@ export async function getDashboardChartData(dates: string[]): Promise<DashboardC
       
       result.push(dataPoint);
     } else {
-      // 单日模式（原有逻辑）
+      // 单日模式 - 查找最近有数据的基准日期
       const date = dateParam;
+      
+      // 先检查前一天是否有数据
       const prevDate = new Date(date);
       prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = prevDate.toISOString().split('T')[0];
+      const defaultPrevDateStr = prevDate.toISOString().split('T')[0];
+      
+      const checkResult = await db.execute({
+        sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
+        args: [defaultPrevDateStr],
+      });
+      
+      let prevDateStr = defaultPrevDateStr;
+      if (Number(checkResult.rows[0]?.cnt) === 0) {
+        // 前一天没有数据，往前找最近有数据的日期（最多30天）
+        const searchStart = new Date(date);
+        searchStart.setDate(searchStart.getDate() - 30);
+        const searchStartStr = searchStart.toISOString().split('T')[0];
+        
+        const nearestResult = await db.execute({
+          sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
+          args: [searchStartStr, date],
+        });
+        
+        const nearest = nearestResult.rows[0]?.nearest as string | null;
+        if (nearest) prevDateStr = nearest;
+      }
       
       const logsResult = await db.execute({
         sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date IN (?, ?) ORDER BY machine_ip`,
@@ -1068,10 +1177,37 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
   const db = getDatabase();
   const printers = await getAllPrinters();
   
-  // 计算前一天日期（用于获取基准值）
-  const baseDate = new Date(startDate);
-  baseDate.setDate(baseDate.getDate() - 1);
-  const baseDateStr = baseDate.toISOString().split('T')[0];
+  // 查找最近有数据的基准日期（往前最多找30天）
+  const findBaseDateStr = async (): Promise<string> => {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() - 1);
+    const defaultBaseDateStr = d.toISOString().split('T')[0];
+    
+    // 检查前一天是否有数据
+    const checkResult = await db.execute({
+      sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
+      args: [defaultBaseDateStr],
+    });
+    
+    if (Number(checkResult.rows[0]?.cnt) > 0) {
+      return defaultBaseDateStr;
+    }
+    
+    // 如果前一天没有数据，往前找最近有数据的日期（最多30天）
+    const searchStart = new Date(startDate);
+    searchStart.setDate(searchStart.getDate() - 30);
+    const searchStartStr = searchStart.toISOString().split('T')[0];
+    
+    const nearestResult = await db.execute({
+      sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
+      args: [searchStartStr, startDate],
+    });
+    
+    const nearest = nearestResult.rows[0]?.nearest as string | null;
+    return nearest || defaultBaseDateStr;
+  };
+  
+  const baseDateStr = await findBaseDateStr();
   
   // 获取日期范围内的数据（包含前一天作为基准）
   const logsResult = await db.execute({

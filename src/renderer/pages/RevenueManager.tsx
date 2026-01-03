@@ -400,11 +400,12 @@ function RevenueManager() {
       totalRevenue: acc.totalRevenue + printerRevenue,
       totalCost: acc.totalCost + printerCost,
       otherIncome: acc.otherIncome + day.otherIncome,
+      otherCost: acc.otherCost + (day.otherCost || 0),
       netProfit: acc.netProfit + day.netProfit,
       totalCount: acc.totalCount + totalCount,
       wasteCount: acc.wasteCount + wasteCount,
     };
-  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, netProfit: 0, totalCount: 0, wasteCount: 0 });
+  }, { totalRevenue: 0, totalCost: 0, otherIncome: 0, otherCost: 0, netProfit: 0, totalCount: 0, wasteCount: 0 });
 
   // 计算损耗金额（损耗数量 * 平均单价）
   const avgPrice = monthTotals.totalCount > 0 ? monthTotals.totalRevenue / (monthTotals.totalCount + monthTotals.wasteCount - monthTotals.wasteCount) : 0;
@@ -420,8 +421,8 @@ function RevenueManager() {
   // 使用云端月租金
   const fixedCost = monthlyRent;
   
-  // 总成本 = 耗材成本 + 损耗损失 + 房租
-  const totalAllCost = monthTotals.totalCost + wasteCost + fixedCost;
+  // 总成本 = 耗材成本 + 损耗损失 + 房租 + 其他收入成本
+  const totalAllCost = monthTotals.totalCost + wasteCost + fixedCost + monthTotals.otherCost;
   
   // 盈亏平衡分析 - 考虑损耗
   // 有效印量 = 总印量 - 损耗
@@ -429,8 +430,8 @@ function RevenueManager() {
   // 平均单张利润 = (营收 - 耗材成本) / 有效印量
   const avgProfitPerPage = effectiveCount > 0 
     ? (monthTotals.totalRevenue - monthTotals.totalCost) / effectiveCount : 0;
-  // 当前利润 = 营收 - 耗材成本 - 损耗损失 - 房租 + 其他收入
-  const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - wasteCost - fixedCost + monthTotals.otherIncome;
+  // 当前利润 = 营收 - 耗材成本 - 损耗损失 - 房租 + 其他收入 - 其他收入成本
+  const currentProfit = monthTotals.totalRevenue - monthTotals.totalCost - wasteCost - fixedCost + monthTotals.otherIncome - monthTotals.otherCost;
   // 回本所需印量 = (房租 + 损耗损失) / 平均单张利润
   const breakEvenPages = avgProfitPerPage > 0 ? Math.ceil((fixedCost + wasteCost) / avgProfitPerPage) : 0;
   const pagesNeeded = avgProfitPerPage > 0 && currentProfit < 0 ? Math.ceil(Math.abs(currentProfit) / avgProfitPerPage) : 0;
@@ -509,7 +510,7 @@ function RevenueManager() {
           <div className="kpi-label">本月总成本</div>
           <div className="kpi-value" style={{ color: '#ef4444' }}>¥{totalAllCost.toFixed(2)}</div>
           <div className="kpi-change" style={{ color: '#6b7280', fontSize: '12px' }}>
-            耗材 ¥{monthTotals.totalCost.toFixed(0)} + 损耗 ¥{wasteCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}
+            耗材 ¥{monthTotals.totalCost.toFixed(0)} + 损耗 ¥{wasteCost.toFixed(0)} + 房租 ¥{fixedCost.toFixed(0)}{monthTotals.otherCost > 0 ? ` + 其他 ¥${monthTotals.otherCost.toFixed(0)}` : ''}
           </div>
         </div>
         <div className="kpi-card" style={{ cursor: 'pointer' }} onClick={openWasteStatsModal}>
@@ -687,11 +688,12 @@ function RevenueManager() {
               {filteredData.map((day) => {
                 const dayRevenue = day.printers.reduce((sum, p) => sum + p.revenue, 0);
                 const dayCost = day.printers.reduce((sum, p) => sum + p.cost, 0);
+                const dayOtherCost = day.otherCost || 0;
                 // 根据开关决定是否包含固定成本分摊
-                const totalCost = includeFixedCost ? dayCost + dailyRent : dayCost;
+                const totalCost = includeFixedCost ? dayCost + dailyRent + dayOtherCost : dayCost + dayOtherCost;
                 const dayNetProfit = includeFixedCost 
-                  ? dayRevenue + day.otherIncome - dayCost - dailyRent 
-                  : dayRevenue + day.otherIncome - dayCost;
+                  ? dayRevenue + day.otherIncome - dayCost - dailyRent - dayOtherCost
+                  : dayRevenue + day.otherIncome - dayCost - dayOtherCost;
                 const isExpanded = expandedRows.has(day.date);
                 
                 return (
@@ -706,6 +708,7 @@ function RevenueManager() {
                         <span style={{ color: '#ef4444', cursor: 'help' }}>¥{totalCost.toFixed(2)}</span>
                         <div className="tooltip-content" style={tooltipStyle}>
                           耗材成本: ¥{dayCost.toFixed(2)}
+                          {dayOtherCost > 0 && <><br/>其他成本: ¥{dayOtherCost.toFixed(2)}</>}
                           {includeFixedCost && <><br/>房租分摊: ¥{dailyRent.toFixed(2)}</>}
                         </div>
                       </td>
@@ -723,6 +726,7 @@ function RevenueManager() {
                         <div className="tooltip-content" style={tooltipStyle}>
                           营业额: ¥{(dayRevenue + day.otherIncome).toFixed(2)}<br/>
                           - 耗材: ¥{dayCost.toFixed(2)}<br/>
+                          {dayOtherCost > 0 && <>- 其他成本: ¥{dayOtherCost.toFixed(2)}<br/></>}
                           {includeFixedCost && <>- 房租分摊: ¥{dailyRent.toFixed(2)}<br/></>}
                           = 纯利润: ¥{dayNetProfit.toFixed(2)}
                         </div>

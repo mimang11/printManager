@@ -204,6 +204,7 @@ export interface CloudMonthlyRevenueData {
     profit: number;
   }[];
   otherIncome: number;
+  otherCost: number;
   otherIncomeNote: string;
   netProfit: number;
   rent: number;

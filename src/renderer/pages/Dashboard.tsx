@@ -198,7 +198,7 @@ function Dashboard() {
   const days = Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1);
   
   const periodLabel = viewMode === 'day' ? '当日' : viewMode === 'month' ? '本月' : '本年';
-  const prevLabel = viewMode === 'day' ? '昨日' : viewMode === 'month' ? '上月' : '去年';
+  const prevLabel = viewMode === 'day' ? '上期' : viewMode === 'month' ? '上月' : '去年';
 
   // 格式化金额（支持隐藏）
   const formatAmount = (amount: number) => hideAmount ? '****' : `¥${amount.toFixed(2)}`;
@@ -332,14 +332,14 @@ function Dashboard() {
         <div className="kpi-card">
           <div className="kpi-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {periodLabel}毛利润
-            <span title="仅包含：营收 - 耗材成本。未包含房租等固定支出。" style={{ 
+            <span title="总营收(打印+其他) - 总成本(耗材+其他成本+损耗)。未包含房租等固定支出。" style={{ 
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: '16px', height: '16px', borderRadius: '50%', 
               background: '#e5e7eb', color: '#6b7280', fontSize: '11px', cursor: 'help', fontWeight: 600 
             }}>i</span>
           </div>
           <div className="kpi-value">{formatAmount(stats?.totalProfit || 0)}</div>
-          <div className="kpi-change" style={{ color: '#6b7280' }}>耗材成本: {formatAmount(stats?.totalCost || 0)}</div>
+          <div className="kpi-change" style={{ color: '#6b7280' }}>总成本: {formatAmount(stats?.totalCost || 0)}</div>
         </div>
       </div>
 
@@ -385,7 +385,7 @@ function Dashboard() {
                     label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
                     outerRadius={80} dataKey="value" onClick={handlePieClick} style={{ cursor: 'pointer', outline: 'none' }} isAnimationActive={false}>
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}
+                      <Cell key={`cell-${index}`} fill={COLORS[printerNames.indexOf(entry.name) % COLORS.length]}
                         stroke={selectedPrinter === entry.name ? '#1f2937' : 'none'} strokeWidth={selectedPrinter === entry.name ? 3 : 0}
                         opacity={selectedPrinter && selectedPrinter !== entry.name ? 0.4 : 1} />
                     ))}
