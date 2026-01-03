@@ -73,7 +73,11 @@ function Dashboard() {
   const getPrevDateRange = () => {
     if (viewMode === 'day') {
       const prevDate = new Date(selectedYear, selectedMonth - 1, selectedDay - 1);
-      const dateStr = prevDate.toISOString().split('T')[0];
+      // 使用本地时间格式化日期，避免 UTC 时区问题
+      const year = prevDate.getFullYear();
+      const month = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const day = String(prevDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       return { start: dateStr, end: dateStr };
     } else if (viewMode === 'month') {
       const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;

@@ -855,9 +855,9 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
   
   // 查找最近有数据的基准日期（往前最多找30天）
   const findBaseDate = async (targetDate: string): Promise<string> => {
-    const d = new Date(targetDate);
+    const d = new Date(targetDate + 'T00:00:00');
     d.setDate(d.getDate() - 1);
-    const baseDateStr = d.toISOString().split('T')[0];
+    const baseDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
     // 检查前一天是否有数据
     const checkResult = await db.execute({
@@ -870,9 +870,9 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
     }
     
     // 如果前一天没有数据，往前找最近有数据的日期（最多30天）
-    const searchStart = new Date(targetDate);
+    const searchStart = new Date(targetDate + 'T00:00:00');
     searchStart.setDate(searchStart.getDate() - 30);
-    const searchStartStr = searchStart.toISOString().split('T')[0];
+    const searchStartStr = `${searchStart.getFullYear()}-${String(searchStart.getMonth() + 1).padStart(2, '0')}-${String(searchStart.getDate()).padStart(2, '0')}`;
     
     const nearestResult = await db.execute({
       sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
@@ -896,9 +896,9 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
     }
     
     // 如果目标日期没有数据，往前找最近有数据的日期（最多30天）
-    const searchStart = new Date(targetDate);
+    const searchStart = new Date(targetDate + 'T00:00:00');
     searchStart.setDate(searchStart.getDate() - 30);
-    const searchStartStr = searchStart.toISOString().split('T')[0];
+    const searchStartStr = `${searchStart.getFullYear()}-${String(searchStart.getMonth() + 1).padStart(2, '0')}-${String(searchStart.getDate()).padStart(2, '0')}`;
     
     const nearestResult = await db.execute({
       sql: `SELECT MAX(log_date) as nearest FROM printer_logs WHERE log_date >= ? AND log_date < ?`,
@@ -922,9 +922,9 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
       
       // 检查前一期的基准日期是否是前一期日期的前一天
       // 如果不是，说明中间有数据缺失，环比数据不准确
-      const expectedPrevBaseDate = new Date(nearestPrevDate);
+      const expectedPrevBaseDate = new Date(nearestPrevDate + 'T00:00:00');
       expectedPrevBaseDate.setDate(expectedPrevBaseDate.getDate() - 1);
-      const expectedPrevBaseDateStr = expectedPrevBaseDate.toISOString().split('T')[0];
+      const expectedPrevBaseDateStr = `${expectedPrevBaseDate.getFullYear()}-${String(expectedPrevBaseDate.getMonth() + 1).padStart(2, '0')}-${String(expectedPrevBaseDate.getDate()).padStart(2, '0')}`;
       
       const checkPrevBase = await db.execute({
         sql: `SELECT COUNT(*) as cnt FROM printer_logs WHERE log_date = ?`,
