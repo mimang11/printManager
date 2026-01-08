@@ -40,6 +40,7 @@ function RevenueManager() {
   const [wastePrinterId, setWastePrinterId] = useState('');
   const [wastePrinterName, setWastePrinterName] = useState('');
   const [wasteMaxCount, setWasteMaxCount] = useState(0);
+  const [wasteUnitPrice, setWasteUnitPrice] = useState(0); // 打印机单价，用于计算损耗金额
   const [wasteRecords, setWasteRecords] = useState<WasteRecordDetail[]>([]);
   const [newWasteCount, setNewWasteCount] = useState(0);
   const [newWasteReason, setNewWasteReason] = useState('');
@@ -59,6 +60,13 @@ function RevenueManager() {
   const [wasteStatsTab, setWasteStatsTab] = useState<'operator' | 'daily'>('operator');
   const [expandedWasteOperator, setExpandedWasteOperator] = useState<string | null>(null);
   const [expandedWasteDay, setExpandedWasteDay] = useState<string | null>(null);
+
+  // 美化提示弹窗
+  const [toastMessage, setToastMessage] = useState<{ type: 'error' | 'warning' | 'success'; text: string } | null>(null);
+  const showToast = (type: 'error' | 'warning' | 'success', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // 加载月租金
   const loadRent = async () => {
@@ -126,7 +134,7 @@ function RevenueManager() {
   const handleAddOther = async () => {
     if (!selectedDate) return;
     if (!otherOperator) {
-      alert('请选择操作人');
+      showToast('warning', '请选择操作人');
       return;
     }
     try {
@@ -141,10 +149,10 @@ function RevenueManager() {
         setOtherNote('');
         loadData();
       } else {
-        alert('添加失败: ' + result.error);
+        showToast('error', '添加失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('添加失败: ' + err.message);
+      showToast('error', '添加失败: ' + err.message);
     }
   };
 
@@ -187,10 +195,10 @@ function RevenueManager() {
         setOtherRecords(prev => prev.filter(r => r.id !== deleteOtherConfirmId));
         loadData();
       } else {
-        alert('删除失败: ' + result.error);
+        showToast('error', '删除失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('删除失败: ' + err.message);
+      showToast('error', '删除失败: ' + err.message);
     } finally {
       setDeleteOtherConfirmId(null);
     }
@@ -259,11 +267,12 @@ function RevenueManager() {
   };
 
   // 打开损耗上报弹窗
-  const openWasteModal = async (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number) => {
+  const openWasteModal = async (date: string, printerId: string, printerName: string, maxCount: number, currentWaste: number, unitPrice: number) => {
     setWasteDate(date);
     setWastePrinterId(printerId);
     setWastePrinterName(printerName);
     setWasteMaxCount(maxCount);
+    setWasteUnitPrice(unitPrice); // 设置单价
     setNewWasteCount(0);
     setNewWasteReason('');
     setNewWasteOperator('');
@@ -289,15 +298,15 @@ function RevenueManager() {
   // 添加损耗记录
   const handleAddWaste = async () => {
     if (newWasteCount <= 0) {
-      alert('请输入损耗数量');
+      showToast('warning', '请输入损耗数量');
       return;
     }
     if (newWasteCount > maxNewWaste) {
-      alert(`损耗数量不能超过 ${maxNewWaste} 张（当前印量 ${wasteMaxCount} - 已损耗 ${currentTotalWaste}）`);
+      showToast('warning', `损耗数量不能超过 ${maxNewWaste} 张（当前印量 ${wasteMaxCount} - 已损耗 ${currentTotalWaste}）`);
       return;
     }
     if (!newWasteOperator.trim()) {
-      alert('请输入操作人');
+      showToast('warning', '请选择操作人');
       return;
     }
     
@@ -315,10 +324,10 @@ function RevenueManager() {
         setNewWasteReason('');
         loadData(); // 刷新主数据
       } else {
-        alert('添加失败: ' + result.error);
+        showToast('error', '添加失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('添加失败: ' + err.message);
+      showToast('error', '添加失败: ' + err.message);
     }
   };
 
@@ -337,10 +346,10 @@ function RevenueManager() {
         setWasteRecords(prev => prev.filter(r => r.id !== deleteConfirmId));
         loadData();
       } else {
-        alert('删除失败: ' + result.error);
+        showToast('error', '删除失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('删除失败: ' + err.message);
+      showToast('error', '删除失败: ' + err.message);
     } finally {
       setDeleteConfirmId(null);
     }
@@ -359,10 +368,10 @@ function RevenueManager() {
         setMonthlyRent(editingRent);
         setShowRentModal(false);
       } else {
-        alert('保存失败: ' + result.error);
+        showToast('error', '保存失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('保存失败: ' + err.message);
+      showToast('error', '保存失败: ' + err.message);
     }
   };
 
@@ -766,7 +775,10 @@ function RevenueManager() {
                                 color: p.wasteCount > 0 ? '#d97706' : '#6b7280',
                                 border: 'none', fontSize: '12px', padding: '4px 8px'
                               }}
-                              onClick={() => openWasteModal(day.date, p.printerId, p.printerName, p.count, p.wasteCount)}
+                              onClick={() => {
+                                const unitPrice = p.count > 0 ? p.revenue / p.count : 0;
+                                openWasteModal(day.date, p.printerId, p.printerName, p.count, p.wasteCount, unitPrice);
+                              }}
                             >
                               🗑️ {p.wasteCount > 0 ? `损耗:${p.wasteCount}` : '损耗'}
                             </button>
@@ -898,6 +910,7 @@ function RevenueManager() {
               <button className="modal-close" onClick={() => setShowWasteModal(false)}>&times;</button>
             </div>
             <div className="modal-body">
+              {/* 当前汇总 */}
               <div style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>日期: {wasteDate}</div>
@@ -905,6 +918,7 @@ function RevenueManager() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 600 }}>总损耗: {currentTotalWaste} 张</div>
+                  <div style={{ fontSize: '12px', color: '#ef4444' }}>损失: ¥{(currentTotalWaste * wasteUnitPrice).toFixed(2)}</div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>有效印量: {wasteMaxCount - currentTotalWaste} 张</div>
                 </div>
               </div>
@@ -957,6 +971,7 @@ function RevenueManager() {
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: 600, color: '#ef4444' }}>{record.waste_count} 张</span>
+                            <span style={{ fontSize: '12px', color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>损失 ¥{(record.waste_count * wasteUnitPrice).toFixed(2)}</span>
                             <span style={{ fontSize: '12px', color: '#6b7280', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{record.operator}</span>
                           </div>
                           {record.note && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{record.note}</div>}
@@ -1131,6 +1146,38 @@ function RevenueManager() {
       <style>{`
         .tooltip-trigger .tooltip-content { display: none; }
         .tooltip-trigger:hover .tooltip-content { display: block; }
+      `}</style>
+
+      {/* 美化提示弹窗 Toast */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+          padding: '12px 24px', borderRadius: '8px', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          animation: 'slideDown 0.3s ease',
+          background: toastMessage.type === 'error' ? '#fef2f2' : toastMessage.type === 'warning' ? '#fffbeb' : '#f0fdf4',
+          border: `1px solid ${toastMessage.type === 'error' ? '#fecaca' : toastMessage.type === 'warning' ? '#fde68a' : '#bbf7d0'}`,
+          color: toastMessage.type === 'error' ? '#dc2626' : toastMessage.type === 'warning' ? '#d97706' : '#16a34a',
+        }}>
+          <span style={{ fontSize: '18px' }}>
+            {toastMessage.type === 'error' ? '❌' : toastMessage.type === 'warning' ? '⚠️' : '✅'}
+          </span>
+          <span style={{ fontWeight: 500 }}>{toastMessage.text}</span>
+          <button 
+            onClick={() => setToastMessage(null)}
+            style={{ 
+              marginLeft: '8px', background: 'transparent', border: 'none', 
+              cursor: 'pointer', fontSize: '16px', color: 'inherit', opacity: 0.7 
+            }}
+          >×</button>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
       `}</style>
     </div>
   );

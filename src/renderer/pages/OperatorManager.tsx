@@ -28,6 +28,13 @@ function OperatorManager() {
   // 删除确认弹窗
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'operator' | 'reason'; id: number; name: string } | null>(null);
 
+  // 美化提示弹窗
+  const [toastMessage, setToastMessage] = useState<{ type: 'error' | 'warning' | 'success'; text: string } | null>(null);
+  const showToast = (type: 'error' | 'warning' | 'success', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   // 加载操作人
   const loadOperators = async () => {
     setOperatorLoading(true);
@@ -80,7 +87,7 @@ function OperatorManager() {
   // 保存操作人
   const handleSaveOperator = async () => {
     if (!operatorName.trim()) {
-      alert('请输入操作人姓名');
+      showToast('warning', '请输入操作人姓名');
       return;
     }
     setOperatorSaving(true);
@@ -91,7 +98,7 @@ function OperatorManager() {
           loadOperators();
           setShowOperatorModal(false);
         } else {
-          alert('更新失败: ' + result.error);
+          showToast('error', '更新失败: ' + result.error);
         }
       } else {
         const result = await window.electronAPI.addOperator(operatorName.trim());
@@ -99,11 +106,11 @@ function OperatorManager() {
           loadOperators();
           setShowOperatorModal(false);
         } else {
-          alert('添加失败: ' + result.error);
+          showToast('error', '添加失败: ' + result.error);
         }
       }
     } catch (err: any) {
-      alert('操作失败: ' + err.message);
+      showToast('error', '操作失败: ' + err.message);
     } finally {
       setOperatorSaving(false);
     }
@@ -126,7 +133,7 @@ function OperatorManager() {
   // 保存损耗理由
   const handleSaveReason = async () => {
     if (!reasonText.trim()) {
-      alert('请输入损耗理由');
+      showToast('warning', '请输入损耗理由');
       return;
     }
     setReasonSaving(true);
@@ -137,7 +144,7 @@ function OperatorManager() {
           loadDamageReasons();
           setShowReasonModal(false);
         } else {
-          alert('更新失败: ' + result.error);
+          showToast('error', '更新失败: ' + result.error);
         }
       } else {
         const result = await window.electronAPI.addDamageReason(reasonText.trim());
@@ -145,11 +152,11 @@ function OperatorManager() {
           loadDamageReasons();
           setShowReasonModal(false);
         } else {
-          alert('添加失败: ' + result.error);
+          showToast('error', '添加失败: ' + result.error);
         }
       }
     } catch (err: any) {
-      alert('操作失败: ' + err.message);
+      showToast('error', '操作失败: ' + err.message);
     } finally {
       setReasonSaving(false);
     }
@@ -164,18 +171,18 @@ function OperatorManager() {
         if (result.success) {
           loadOperators();
         } else {
-          alert('删除失败: ' + result.error);
+          showToast('error', '删除失败: ' + result.error);
         }
       } else {
         const result = await window.electronAPI.deleteDamageReason(deleteConfirm.id);
         if (result.success) {
           loadDamageReasons();
         } else {
-          alert('删除失败: ' + result.error);
+          showToast('error', '删除失败: ' + result.error);
         }
       }
     } catch (err: any) {
-      alert('删除失败: ' + err.message);
+      showToast('error', '删除失败: ' + err.message);
     } finally {
       setDeleteConfirm(null);
     }
@@ -331,6 +338,38 @@ function OperatorManager() {
           </div>
         </div>
       )}
+
+      {/* 美化提示弹窗 Toast */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+          padding: '12px 24px', borderRadius: '8px', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          animation: 'slideDown 0.3s ease',
+          background: toastMessage.type === 'error' ? '#fef2f2' : toastMessage.type === 'warning' ? '#fffbeb' : '#f0fdf4',
+          border: `1px solid ${toastMessage.type === 'error' ? '#fecaca' : toastMessage.type === 'warning' ? '#fde68a' : '#bbf7d0'}`,
+          color: toastMessage.type === 'error' ? '#dc2626' : toastMessage.type === 'warning' ? '#d97706' : '#16a34a',
+        }}>
+          <span style={{ fontSize: '18px' }}>
+            {toastMessage.type === 'error' ? '❌' : toastMessage.type === 'warning' ? '⚠️' : '✅'}
+          </span>
+          <span style={{ fontWeight: 500 }}>{toastMessage.text}</span>
+          <button 
+            onClick={() => setToastMessage(null)}
+            style={{ 
+              marginLeft: '8px', background: 'transparent', border: 'none', 
+              cursor: 'pointer', fontSize: '16px', color: 'inherit', opacity: 0.7 
+            }}
+          >×</button>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

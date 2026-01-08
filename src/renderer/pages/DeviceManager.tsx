@@ -45,6 +45,13 @@ function DeviceManager() {
   // 删除确认弹窗
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
 
+  // 美化提示弹窗
+  const [toastMessage, setToastMessage] = useState<{ type: 'error' | 'warning' | 'success'; text: string } | null>(null);
+  const showToast = (type: 'error' | 'warning' | 'success', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   // 加载打印机统计数据
   const loadPrinterStats = async () => {
     setLoading(true);
@@ -122,10 +129,10 @@ function DeviceManager() {
       if (result.success) {
         loadPrinterStats();
       } else {
-        alert('删除失败: ' + result.error);
+        showToast('error', '删除失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('删除失败: ' + err.message);
+      showToast('error', '删除失败: ' + err.message);
     } finally {
       setDeleteConfirm(null);
     }
@@ -134,11 +141,11 @@ function DeviceManager() {
   // 保存打印机
   const handleSave = async () => {
     if (!formData.machine_name.trim()) {
-      alert('请输入打印机名称');
+      showToast('warning', '请输入打印机名称');
       return;
     }
     if (!formData.machine_ip.trim()) {
-      alert('请输入 IP 地址');
+      showToast('warning', '请输入 IP 地址');
       return;
     }
     
@@ -155,7 +162,7 @@ function DeviceManager() {
           scrape_url: formData.scrape_url || null,
         });
         if (!result.success) {
-          alert('更新失败: ' + result.error);
+          showToast('error', '更新失败: ' + result.error);
           return;
         }
       } else {
@@ -170,14 +177,14 @@ function DeviceManager() {
           status: 'offline', // 后端会根据 IP 检查结果覆盖
         });
         if (!result.success) {
-          alert('添加失败: ' + result.error);
+          showToast('error', '添加失败: ' + result.error);
           return;
         }
       }
       setShowModal(false);
       loadPrinterStats();
     } catch (err: any) {
-      alert('保存失败: ' + err.message);
+      showToast('error', '保存失败: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -205,13 +212,13 @@ function DeviceManager() {
     try {
       const result = await window.electronAPI.autoAddPrintersFromLogs();
       if (result.success) {
-        alert('✅ ' + result.message);
+        showToast('success', result.message || '添加成功');
         loadPrinterStats(); // 刷新列表
       } else {
-        alert('❌ 添加失败: ' + result.error);
+        showToast('error', '添加失败: ' + result.error);
       }
     } catch (err: any) {
-      alert('❌ 添加失败: ' + err.message);
+      showToast('error', '添加失败: ' + err.message);
     } finally {
       setAutoAdding(false);
     }
@@ -439,6 +446,38 @@ function DeviceManager() {
           </div>
         </div>
       )}
+
+      {/* 美化提示弹窗 Toast */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+          padding: '12px 24px', borderRadius: '8px', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          animation: 'slideDown 0.3s ease',
+          background: toastMessage.type === 'error' ? '#fef2f2' : toastMessage.type === 'warning' ? '#fffbeb' : '#f0fdf4',
+          border: `1px solid ${toastMessage.type === 'error' ? '#fecaca' : toastMessage.type === 'warning' ? '#fde68a' : '#bbf7d0'}`,
+          color: toastMessage.type === 'error' ? '#dc2626' : toastMessage.type === 'warning' ? '#d97706' : '#16a34a',
+        }}>
+          <span style={{ fontSize: '18px' }}>
+            {toastMessage.type === 'error' ? '❌' : toastMessage.type === 'warning' ? '⚠️' : '✅'}
+          </span>
+          <span style={{ fontWeight: 500 }}>{toastMessage.text}</span>
+          <button 
+            onClick={() => setToastMessage(null)}
+            style={{ 
+              marginLeft: '8px', background: 'transparent', border: 'none', 
+              cursor: 'pointer', fontSize: '16px', color: 'inherit', opacity: 0.7 
+            }}
+          >×</button>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
