@@ -956,9 +956,29 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
     sql: `SELECT machine_ip, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
     args: [prevBaseDate, actualPrevEndDate],
   });
+
+  // 为每台机器单独查询其在统计期开始前最近的一条记录（作为各自的基准）
+  const fetchPerMachineBase = async (beforeDate: string): Promise<Map<string, number>> => {
+    const result = await db.execute({
+      sql: `SELECT machine_ip, print_count FROM printer_logs 
+            WHERE (machine_ip, log_date) IN (
+              SELECT machine_ip, MAX(log_date) FROM printer_logs WHERE log_date < ? GROUP BY machine_ip
+            )`,
+      args: [beforeDate],
+    });
+    const map = new Map<string, number>();
+    for (const row of result.rows) {
+      map.set(row.machine_ip as string, Number(row.print_count) || 0);
+    }
+    return map;
+  };
+
+  const currentPerMachineBase = await fetchPerMachineBase(startDate);
+  const prevPerMachineBase = await fetchPerMachineBase(actualPrevStartDate);
   
-  // 计算实际打印量 (累计差值)，baseDate 是基准日期（不计入统计，仅作为第一天的前一天）
-  const calcPrints = (rows: any[], baseDate: string, actualStartDate: string) => {
+  // 计算实际打印量 (累计差值)
+  // perMachineBase: 每台机器在统计期开始前最近一条记录的值（作为第一天的基准）
+  const calcPrints = (rows: any[], actualStartDate: string, perMachineBase: Map<string, number>) => {
     const ipDateMap = new Map<string, Map<string, number>>();
     for (const row of rows) {
       const ip = row.machine_ip as string;
@@ -977,12 +997,22 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
       
       for (let i = 0; i < dates.length; i++) {
         const currentDate = dates[i];
-        // 跳过基准日期之前的数据，它只用于计算第一天的差值
         if (currentDate < actualStartDate) continue;
         
         const curr = dateMap.get(currentDate) || 0;
-        // 找到前一个有数据的日期（可能不是连续的）
-        const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
+        let prev: number;
+        if (i > 0 && dates[i - 1] < actualStartDate) {
+          // 前一条是全局查询里带进来的基准记录，直接用
+          prev = dateMap.get(dates[i - 1]) || 0;
+        } else if (i === 0 || dates[i - 1] >= actualStartDate) {
+          // 全局查询里没有该机器的基准记录，用各自独立查询的基准
+          // 如果连独立基准也没有（机器超过30天未用且从未有过记录），则跳过
+          if (!perMachineBase.has(ip)) continue;
+          prev = perMachineBase.get(ip)!;
+        } else {
+          prev = dateMap.get(dates[i - 1]) || 0;
+        }
+        
         const dailyPrints = Math.max(0, curr - prev);
         totalCount += dailyPrints;
         totalRevenue += dailyPrints * price;
@@ -992,8 +1022,8 @@ export async function getDashboardStats(startDate: string, endDate: string, prev
     return { totalCount, totalRevenue, totalCost };
   };
   
-  const current = calcPrints(currentResult.rows, currentBaseDate, startDate);
-  const prev = calcPrints(prevResult.rows, prevBaseDate, actualPrevStartDate);
+  const current = calcPrints(currentResult.rows, startDate, currentPerMachineBase);
+  const prev = calcPrints(prevResult.rows, actualPrevStartDate, prevPerMachineBase);
   
   // 获取其他收入及其成本
   const currentOtherResult = await db.execute({
@@ -1082,21 +1112,23 @@ export async function getDashboardChartData(dates: string[]): Promise<DashboardC
       const dataPoint: DashboardChartPoint = { date: `${parseInt(month)}月`, count: 0 };
       
       // 按 IP 分组计算
-      const ipMap = new Map<string, { base: number; end: number; name: string }>();
+      const ipMap = new Map<string, { base: number; end: number; name: string; hasBase: boolean }>();
       for (const row of logsResult.rows) {
         const ip = row.machine_ip as string;
         const logDate = row.log_date as string;
         const count = Number(row.print_count) || 0;
         const name = row.machine_name as string;
         
-        if (!ipMap.has(ip)) ipMap.set(ip, { base: 0, end: 0, name });
+        if (!ipMap.has(ip)) ipMap.set(ip, { base: 0, end: 0, name, hasBase: false });
         const entry = ipMap.get(ip)!;
-        if (logDate === baseDateStr) entry.base = count;
+        if (logDate === baseDateStr) { entry.base = count; entry.hasBase = true; }
         else if (logDate === endDate) entry.end = count;
       }
       
       // 计算每台打印机的月度打印量
       for (const [ip, data] of ipMap) {
+        // 没有基准日数据时跳过，避免将累计总量误算为当月印量
+        if (!data.hasBase) continue;
         const monthlyPrints = Math.max(0, data.end - data.base);
         dataPoint.count += monthlyPrints;
         
@@ -1143,20 +1175,22 @@ export async function getDashboardChartData(dates: string[]): Promise<DashboardC
       
       const dataPoint: DashboardChartPoint = { date: date.slice(5), count: 0 };
       
-      const ipMap = new Map<string, { prev: number; curr: number; name: string }>();
+      const ipMap = new Map<string, { prev: number; curr: number; name: string; hasBase: boolean }>();
       for (const row of logsResult.rows) {
         const ip = row.machine_ip as string;
         const logDate = row.log_date as string;
         const count = Number(row.print_count) || 0;
         const name = row.machine_name as string;
         
-        if (!ipMap.has(ip)) ipMap.set(ip, { prev: 0, curr: 0, name });
+        if (!ipMap.has(ip)) ipMap.set(ip, { prev: 0, curr: 0, name, hasBase: false });
         const entry = ipMap.get(ip)!;
-        if (logDate === prevDateStr) entry.prev = count;
+        if (logDate === prevDateStr) { entry.prev = count; entry.hasBase = true; }
         else if (logDate === date) entry.curr = count;
       }
       
       for (const [ip, data] of ipMap) {
+        // 没有基准日数据时跳过，避免将累计总量误算为当日印量
+        if (!data.hasBase) continue;
         const dailyPrints = Math.max(0, data.curr - data.prev);
         dataPoint.count += dailyPrints;
         
@@ -1214,6 +1248,19 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
     sql: `SELECT machine_ip, machine_name, log_date, print_count FROM printer_logs WHERE log_date >= ? AND log_date <= ? ORDER BY machine_ip, log_date`,
     args: [baseDateStr, endDate],
   });
+
+  // 每台机器各自在 startDate 前最近一条记录（应对基准日当天某机器无记录的情况）
+  const perMachineBaseResult = await db.execute({
+    sql: `SELECT machine_ip, print_count FROM printer_logs 
+          WHERE (machine_ip, log_date) IN (
+            SELECT machine_ip, MAX(log_date) FROM printer_logs WHERE log_date < ? GROUP BY machine_ip
+          )`,
+    args: [startDate],
+  });
+  const perMachineBase = new Map<string, number>();
+  for (const row of perMachineBaseResult.rows) {
+    perMachineBase.set(row.machine_ip as string, Number(row.print_count) || 0);
+  }
   
   // 按 IP 分组计算实际打印量
   const ipTotals = new Map<string, { total: number; name: string }>();
@@ -1238,11 +1285,18 @@ export async function getDashboardPieData(startDate: string, endDate: string): P
     let total = 0;
     for (let i = 0; i < dates.length; i++) {
       const currentDate = dates[i];
-      // 跳过基准日期，它只用于计算第一天的差值
       if (currentDate < startDate) continue;
       
       const curr = dateMap.get(currentDate) || 0;
-      const prev = i > 0 ? (dateMap.get(dates[i - 1]) || 0) : 0;
+      let prev: number;
+      if (i > 0 && dates[i - 1] < startDate) {
+        prev = dateMap.get(dates[i - 1]) || 0;
+      } else if (i === 0 || dates[i - 1] >= startDate) {
+        if (!perMachineBase.has(ip)) continue;
+        prev = perMachineBase.get(ip)!;
+      } else {
+        prev = dateMap.get(dates[i - 1]) || 0;
+      }
       total += Math.max(0, curr - prev);
     }
     ipTotals.get(ip)!.total = total;
