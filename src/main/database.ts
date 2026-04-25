@@ -526,21 +526,32 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   
-  // 计算前一天日期
-  const prevDate = new Date(year, month - 1, 0); // 上个月最后一天
-  const prevDateStr = prevDate.toISOString().split('T')[0];
-  
   // 获取所有打印机配置
   const printers = await getAllPrinters();
   const printerMap = new Map(printers.map(p => [p.machine_ip, p]));
+
+  // 为每台机器查询本月开始前最近的一条记录，作为首条月内记录的基准。
+  // 避免某台机器月中才恢复同步时，把累计总数误算成当天印量。
+  const baseResult = await db.execute({
+    sql: `SELECT machine_ip, print_count FROM printer_logs 
+          WHERE (machine_ip, log_date) IN (
+            SELECT machine_ip, MAX(log_date) FROM printer_logs WHERE log_date < ? GROUP BY machine_ip
+          )`,
+    args: [startDate],
+  });
+
+  const machineBaseMap = new Map<string, number>();
+  for (const row of baseResult.rows) {
+    machineBaseMap.set(row.machine_ip as string, Number(row.print_count) || 0);
+  }
   
-  // 获取日期范围内的打印日志 (包含前一天)
+  // 获取本月日期范围内的打印日志
   const logsResult = await db.execute({
     sql: `SELECT log_date, machine_ip, machine_name, print_count 
           FROM printer_logs 
           WHERE log_date >= ? AND log_date <= ? 
           ORDER BY machine_ip, log_date`,
-    args: [prevDateStr, endDate],
+    args: [startDate, endDate],
   });
   
   // 获取损耗记录
@@ -604,10 +615,11 @@ export async function getCloudMonthlyRevenueData(year: number, month: number): P
       if (date < startDate) continue; // 跳过前一天的数据
       
       const currentLog = dateLogs.get(date)!;
-      const prevLog = i > 0 ? dateLogs.get(sortedDates[i - 1]) : null;
+      const prevCount = i > 0 ? dateLogs.get(sortedDates[i - 1])!.count : machineBaseMap.get(machine_ip);
       
-      // 实际打印量 = 当天累计 - 前一天累计
-      const actualCount = prevLog ? Math.max(0, currentLog.count - prevLog.count) : currentLog.count;
+      // 实际打印量 = 当天累计 - 该机器上一条累计记录
+      if (prevCount === undefined) continue;
+      const actualCount = Math.max(0, currentLog.count - prevCount);
       
       // 获取损耗
       const wasteKey = `${machine_ip}_${date}`;
